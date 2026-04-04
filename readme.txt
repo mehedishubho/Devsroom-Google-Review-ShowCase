@@ -61,7 +61,7 @@ No. The plugin works via shortcode on any WordPress site. The Elementor widget i
 
 == Changelog ==
 
-= 1.0.0 =
+= 0.0.1 =
 * Initial release
 * Google Places API integration
 * Four layout types (Slider, Grid, Masonry, List)

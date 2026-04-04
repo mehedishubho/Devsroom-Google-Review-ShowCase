@@ -1,26 +1,26 @@
-# Devsroom Google Review ShowCase — User Guide
+# Devsroom Google Review ShowCase
 
-## Table of Contents
+> Fetch and display verified Google My Business reviews on your WordPress site via shortcode and Elementor widget.
 
-1. [Installation](#installation)
-2. [Getting Your Google API Credentials](#getting-your-google-api-credentials)
-3. [Plugin Settings](#plugin-settings)
-4. [Using the Shortcode](#using-the-shortcode)
-5. [Using the Elementor Widget](#using-the-elementor-widget)
-6. [Layout Types](#layout-types)
-7. [Content Ordering](#content-ordering)
-8. [Troubleshooting](#troubleshooting)
-9. [FAQ](#faq)
+## Features
+
+- Google Places API integration with smart caching
+- Four layout types: **Slider**, **Grid**, **Masonry**, **List**
+- Dynamic content ordering — reorder photo, name, rating, text, date
+- Elementor widget with full Content and Style controls
+- Shortcode support with flexible attributes
+- Conditional asset loading for optimal performance
+- Admin settings with Test Fetch and Clear Cache
 
 ---
 
 ## Installation
 
-1. Download the plugin zip file
-2. Go to **WordPress Dashboard → Plugins → Add New → Upload Plugin**
-3. Choose the zip file and click **Install Now**
-4. Click **Activate**
-5. Navigate to **Settings → Devsroom Google Reviews** to configure
+1. Upload the plugin folder to `/wp-content/plugins/`
+2. Activate through the **Plugins** menu
+3. Go to **Settings → Devsroom Google Reviews**
+4. Enter your Google API Key and Place ID
+5. Use the shortcode or Elementor widget to display reviews
 
 ---
 
@@ -52,11 +52,11 @@ Navigate to **Settings → Devsroom Google Reviews** in your WordPress dashboard
 
 ### Configuration Fields
 
-| Field               | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| **Google API Key**  | Your Google Cloud API key with Places API enabled       |
-| **Google Place ID** | Your business Place ID from Google                      |
-| **Cache Duration**  | How long to cache reviews (in hours). Default: 24 hours |
+| Field | Description |
+|-------|-------------|
+| **Google API Key** | Your Google Cloud API key with Places API enabled |
+| **Google Place ID** | Your business Place ID from Google |
+| **Cache Duration** | How long to cache reviews (in hours). Default: 24 hours |
 
 ### Action Buttons
 
@@ -93,17 +93,17 @@ Customize the output with attributes:
 
 ### All Available Attributes
 
-| Attribute     | Values                                                     | Default       | Description                         |
-| ------------- | ---------------------------------------------------------- | ------------- | ----------------------------------- |
-| `layout`      | `slider`, `grid`, `masonry`, `list`                        | `grid`        | Display layout type                 |
-| `order`       | `content_top`, `content_bottom`, `name_top`, `name_bottom` | `content_top` | Content order within cards          |
-| `limit`       | `1` – `50`                                                 | `5`           | Number of reviews to display        |
-| `rating`      | `1` – `5`                                                  | `1`           | Minimum star rating filter          |
-| `show_photo`  | `yes`, `no`                                                | `yes`         | Show/hide reviewer photo            |
-| `show_name`   | `yes`, `no`                                                | `yes`         | Show/hide reviewer name             |
-| `show_rating` | `yes`, `no`                                                | `yes`         | Show/hide star rating               |
-| `show_date`   | `yes`, `no`                                                | `yes`         | Show/hide review date               |
-| `show_more`   | `yes`, `no`                                                | `no`          | Enable "Read more" for long reviews |
+| Attribute | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `layout` | `slider`, `grid`, `masonry`, `list` | `grid` | Display layout type |
+| `order` | `content_top`, `content_bottom`, `name_top`, `name_bottom` | `content_top` | Content order within cards |
+| `limit` | `1` – `50` | `5` | Number of reviews to display |
+| `rating` | `1` – `5` | `1` | Minimum star rating filter |
+| `show_photo` | `yes`, `no` | `yes` | Show/hide reviewer photo |
+| `show_name` | `yes`, `no` | `yes` | Show/hide reviewer name |
+| `show_rating` | `yes`, `no` | `yes` | Show/hide star rating |
+| `show_date` | `yes`, `no` | `yes` | Show/hide review date |
+| `show_more` | `yes`, `no` | `no` | Enable "Read more" for long reviews |
 
 ### Shortcode Examples
 
@@ -266,11 +266,11 @@ The plugin allows you to control the position of elements within each review car
 
 ### Order Presets
 
-| Preset              | Element Order (top to bottom)       |
-| ------------------- | ----------------------------------- |
-| Content Top         | Text → Name → Photo → Rating → Date |
-| Content Bottom      | Photo → Name → Rating → Date → Text |
-| Name + Image Top    | Photo → Name → Rating → Text → Date |
+| Preset | Element Order (top to bottom) |
+|--------|-------------------------------|
+| Content Top | Text → Name → Photo → Rating → Date |
+| Content Bottom | Photo → Name → Rating → Date → Text |
+| Name + Image Top | Photo → Name → Rating → Text → Date |
 | Name + Image Bottom | Text → Rating → Photo → Name → Date |
 
 Elements hidden via visibility settings are automatically removed from the order.
@@ -337,3 +337,17 @@ Yes. If using Elementor, use the Style tab controls. For shortcode usage, you ca
 
 **Is the Google API free?**
 Google offers a monthly free tier for the Places API. Check [Google's pricing page](https://developers.google.com/maps/billing/usage-and-billing) for current limits. With caching enabled, you'll only make 1 API call per cache refresh cycle.
+
+---
+
+## Changelog
+
+### 0.0.1
+
+- Initial release
+- Google Places API integration
+- Four layout types (Slider, Grid, Masonry, List)
+- Dynamic content ordering
+- Elementor widget
+- Admin settings page
+- Smart caching system

@@ -54,6 +54,17 @@ function devsroom_greviews_init()
 add_action('plugins_loaded', 'devsroom_greviews_init');
 
 /**
+ * Add Settings action link on the Plugins page.
+ */
+function devsroom_greviews_action_links($links)
+{
+    $settings_link = '<a href="' . admin_url('options-general.php?page=devsroom-google-reviews') . '">' . esc_html__('Settings', 'devsroom-google-review-showcase') . '</a>';
+    array_unshift($links, $settings_link);
+    return $links;
+}
+add_filter('plugin_action_links_' . DEVSROOM_GREVIEWS_BASENAME, 'devsroom_greviews_action_links');
+
+/**
  * Register assets (not enqueued — render engine enqueues on demand).
  */
 function devsroom_greviews_register_assets()
