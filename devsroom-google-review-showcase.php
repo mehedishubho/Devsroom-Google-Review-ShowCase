@@ -4,7 +4,7 @@
  * Plugin Name: Devsroom Google Review ShowCase
  * Plugin URI:  https://devsroom.com
  * Description: Fetch and display verified Google My Business reviews via shortcode and Elementor widget with multiple layouts.
- * Version:     0.0.1
+ * Version:     0.0.2
  * Author:      Devsroom
  * Author URI:  https://devsroom.com
  * License:     GPL-2.0-or-later
@@ -45,10 +45,10 @@ function devsroom_greviews_init()
     }
 
     // WP Cron sync callback.
-    add_action( 'devsroom_greviews_cron_sync', 'devsroom_greviews_do_cron_sync' );
+    add_action('devsroom_greviews_cron_sync', 'devsroom_greviews_do_cron_sync');
 
     // Custom cron intervals.
-    add_filter( 'cron_schedules', 'devsroom_greviews_cron_schedules' );
+    add_filter('cron_schedules', 'devsroom_greviews_cron_schedules');
 
     // Shortcode (always loaded)
     new Devsroom_GReviews_Shortcode();
@@ -128,18 +128,19 @@ add_action('wp_enqueue_scripts', 'devsroom_greviews_register_assets');
 /**
  * Custom cron intervals for OAuth sync.
  */
-function devsroom_greviews_cron_schedules( $schedules ) {
+function devsroom_greviews_cron_schedules($schedules)
+{
     $schedules['devsroom_6hours'] = array(
         'interval' => 21600,
-        'display'  => __( 'Every 6 Hours', 'devsroom-google-review-showcase' ),
+        'display'  => __('Every 6 Hours', 'devsroom-google-review-showcase'),
     );
     $schedules['devsroom_daily'] = array(
         'interval' => 86400,
-        'display'  => __( 'Daily', 'devsroom-google-review-showcase' ),
+        'display'  => __('Daily', 'devsroom-google-review-showcase'),
     );
     $schedules['devsroom_weekly'] = array(
         'interval' => 604800,
-        'display'  => __( 'Weekly', 'devsroom-google-review-showcase' ),
+        'display'  => __('Weekly', 'devsroom-google-review-showcase'),
     );
     return $schedules;
 }
@@ -147,9 +148,10 @@ function devsroom_greviews_cron_schedules( $schedules ) {
 /**
  * Cron sync callback — fetches reviews via OAuth.
  */
-function devsroom_greviews_do_cron_sync() {
-    $mode = get_option( 'devsroom_greviews_connection_mode', 'api_key' );
-    if ( 'oauth' !== $mode ) {
+function devsroom_greviews_do_cron_sync()
+{
+    $mode = get_option('devsroom_greviews_connection_mode', 'api_key');
+    if ('oauth' !== $mode) {
         return;
     }
     $api = new Devsroom_GReviews_Google_API();
@@ -170,7 +172,7 @@ register_activation_hook(__FILE__, 'devsroom_greviews_activate');
  */
 function devsroom_greviews_deactivate()
 {
-    wp_clear_scheduled_hook( 'devsroom_greviews_cron_sync' );
+    wp_clear_scheduled_hook('devsroom_greviews_cron_sync');
     flush_rewrite_rules();
 }
 register_deactivation_hook(__FILE__, 'devsroom_greviews_deactivate');
