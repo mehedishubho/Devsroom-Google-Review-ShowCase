@@ -2,17 +2,22 @@
 Contributors: devsroom
 Tags: google reviews, google my business, testimonials, elementor, shortcode
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.9
 Requires PHP: 8.1
 Stable tag: 0.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Plugin Name: Devsroom Google Review ShowCase
+Plugin Title: Devsroom Google Review ShowCase
+Plugin URI: https://wordpress.org/plugins/devsroom-google-review-showcase/
+Author: WPMHS <mhs@wpmhs.com>
+Author URI: https://www.wpmhs.com/
+Version: 0.0.1
 
-Fetch and display verified Google My Business reviews on your WordPress site via shortcode and Elementor widget.
+Devsroom Google Review ShowCase Embed Google reviews or Google My Business reviews fast and easily into on your WordPress site via shortcode and Elementor widget.
 
-== Description ==
 
-Devsroom Google Review ShowCase lets you fetch and display your Google My Business reviews on your WordPress website. Choose from multiple layout options including Slider, Grid, Masonry, and List views.
+
 
 **Features:**
 

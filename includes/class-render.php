@@ -63,9 +63,9 @@ class Devsroom_GReviews_Render {
             return array();
         }
 
-        // Filter by minimum rating.
-        $min_rating = ! empty( $settings['rating'] ) ? intval( $settings['rating'] ) : 1;
-        if ( $min_rating > 1 ) {
+        // Filter by minimum rating (0 = show all).
+        $min_rating = isset( $settings['rating'] ) ? intval( $settings['rating'] ) : 0;
+        if ( $min_rating > 0 ) {
             $reviews = array_filter( $reviews, function( $review ) use ( $min_rating ) {
                 return intval( $review['rating'] ) >= $min_rating;
             } );

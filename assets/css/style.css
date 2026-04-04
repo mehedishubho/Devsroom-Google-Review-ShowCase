@@ -241,14 +241,14 @@
 @media (max-width: 1024px) {
     .devsroom-greviews-grid,
     .devsroom-greviews-masonry {
-        --greviews-columns: 2;
+        --greviews-columns: var(--greviews-columns-tablet, 2);
     }
 }
 
 @media (max-width: 640px) {
     .devsroom-greviews-grid,
     .devsroom-greviews-masonry {
-        --greviews-columns: 1;
+        --greviews-columns: var(--greviews-columns-mobile, 1);
     }
 
     .devsroom-greviews-card--list {
