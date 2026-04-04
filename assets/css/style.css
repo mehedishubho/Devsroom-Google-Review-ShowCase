@@ -1,0 +1,257 @@
+/*
+ * Devsroom Google Review ShowCase
+ * Frontend Styles
+ */
+
+/* ============================================
+   Variables
+   ============================================ */
+:root {
+    --greviews-card-bg: #ffffff;
+    --greviews-card-padding: 24px;
+    --greviews-card-radius: 12px;
+    --greviews-card-border: 1px solid #e5e7eb;
+    --greviews-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --greviews-text-color: #374151;
+    --greviews-name-color: #111827;
+    --greviews-date-color: #9ca3af;
+    --greviews-star-color: #f59e0b;
+    --greviews-star-empty: #d1d5db;
+    --greviews-star-size: 18px;
+    --greviews-photo-size: 48px;
+    --greviews-columns: 3;
+    --greviews-gap: 20px;
+    --greviews-line-limit: 0;
+}
+
+/* ============================================
+   Wrapper
+   ============================================ */
+.devsroom-greviews {
+    width: 100%;
+}
+
+/* ============================================
+   Card Base
+   ============================================ */
+.devsroom-greviews-card {
+    background: var(--greviews-card-bg);
+    padding: var(--greviews-card-padding);
+    border-radius: var(--greviews-card-radius);
+    border: var(--greviews-card-border);
+    box-shadow: var(--greviews-card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: box-shadow 0.2s ease;
+}
+
+.devsroom-greviews-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================
+   Photo
+   ============================================ */
+.devsroom-greviews-card__photo {
+    flex-shrink: 0;
+    overflow: hidden;
+    line-height: 1;
+}
+
+.devsroom-greviews-card__photo img {
+    display: block;
+    width: var(--greviews-photo-size);
+    height: var(--greviews-photo-size);
+    object-fit: cover;
+}
+
+.devsroom-greviews-card__photo--round img {
+    border-radius: 50%;
+}
+
+.devsroom-greviews-card__photo--square img {
+    border-radius: 4px;
+}
+
+.devsroom-greviews-card__photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--greviews-photo-size);
+    height: var(--greviews-photo-size);
+    background: #e5e7eb;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: calc(var(--greviews-photo-size) * 0.4);
+}
+
+.devsroom-greviews-card__photo--round.devsroom-greviews-card__photo--placeholder {
+    border-radius: 50%;
+}
+
+.devsroom-greviews-card__photo--square.devsroom-greviews-card__photo--placeholder {
+    border-radius: 4px;
+}
+
+/* ============================================
+   Name
+   ============================================ */
+.devsroom-greviews-card__name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--greviews-name-color);
+    line-height: 1.3;
+}
+
+/* ============================================
+   Rating Stars
+   ============================================ */
+.devsroom-greviews-card__rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.devsroom-greviews-star {
+    width: var(--greviews-star-size);
+    height: var(--greviews-star-size);
+    flex-shrink: 0;
+}
+
+.devsroom-greviews-star--filled {
+    color: var(--greviews-star-color);
+}
+
+.devsroom-greviews-star--empty {
+    color: var(--greviews-star-empty);
+}
+
+/* ============================================
+   Review Text
+   ============================================ */
+.devsroom-greviews-card__text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--greviews-text-color);
+    margin: 0;
+}
+
+/* Line limit via CSS */
+.devsroom-greviews-card__text:not(.devsroom-greviews-card__text--truncated) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Read More */
+.devsroom-greviews-card__text--truncated {
+    position: relative;
+}
+
+.devsroom-greviews-read-more {
+    display: inline-block;
+    margin-top: 4px;
+    color: #2563eb;
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.devsroom-greviews-read-more:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   Date
+   ============================================ */
+.devsroom-greviews-card__date {
+    font-size: 13px;
+    color: var(--greviews-date-color);
+    line-height: 1;
+}
+
+/* ============================================
+   Grid Layout
+   ============================================ */
+.devsroom-greviews-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--greviews-columns), 1fr);
+    gap: var(--greviews-gap);
+}
+
+/* ============================================
+   Masonry Layout
+   ============================================ */
+.devsroom-greviews-masonry {
+    display: grid;
+    grid-template-columns: repeat(var(--greviews-columns), 1fr);
+    grid-auto-rows: 8px;
+    gap: var(--greviews-gap);
+}
+
+.devsroom-greviews-card--masonry {
+    /* Row span calculated by JS */
+    align-self: start;
+}
+
+/* ============================================
+   List Layout
+   ============================================ */
+.devsroom-greviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--greviews-gap);
+}
+
+.devsroom-greviews-card--list {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+/* ============================================
+   Slider Layout
+   ============================================ */
+.devsroom-greviews-slider {
+    overflow: hidden;
+    position: relative;
+}
+
+.devsroom-greviews-slider .swiper-slide {
+    height: auto;
+}
+
+.devsroom-greviews-slider .swiper-slide .devsroom-greviews-card {
+    height: 100%;
+}
+
+.devsroom-greviews-slider .swiper-button-prev,
+.devsroom-greviews-slider .swiper-button-next {
+    color: #6b7280;
+}
+
+.devsroom-greviews-slider .swiper-pagination-bullet {
+    background: #6b7280;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 1024px) {
+    .devsroom-greviews-grid,
+    .devsroom-greviews-masonry {
+        --greviews-columns: 2;
+    }
+}
+
+@media (max-width: 640px) {
+    .devsroom-greviews-grid,
+    .devsroom-greviews-masonry {
+        --greviews-columns: 1;
+    }
+
+    .devsroom-greviews-card--list {
+        flex-direction: column;
+    }
+}
