@@ -50,14 +50,24 @@ class Devsroom_GReviews_Render {
     }
 
     /**
-     * Get reviews from cache/API and apply filters.
+     * Get reviews and apply filters.
+     *
+     * Uses OAuth stored reviews when in OAuth mode, otherwise falls back
+     * to the API Key + Place ID fetch method.
      *
      * @param array $settings Filter settings.
      * @return array Filtered reviews.
      */
     public function get_reviews( $settings ) {
-        $api     = new Devsroom_GReviews_API_Fetch();
-        $reviews = $api->fetch_reviews();
+        $mode = get_option( 'devsroom_greviews_connection_mode', 'api_key' );
+
+        if ( 'oauth' === $mode ) {
+            $google_api = new Devsroom_GReviews_Google_API();
+            $reviews    = $google_api->get_stored_reviews();
+        } else {
+            $api     = new Devsroom_GReviews_API_Fetch();
+            $reviews = $api->fetch_reviews();
+        }
 
         if ( is_wp_error( $reviews ) || empty( $reviews ) ) {
             return array();

@@ -1,16 +1,20 @@
 # Devsroom Google Review ShowCase
 
-> Fetch and display verified Google My Business reviews on your WordPress site via shortcode and Elementor widget.
+> Fetch and display verified Google My Business reviews on your WordPress site via shortcode and Elementor widget. Supports two connection modes: API Key + Place ID or Google OAuth 2.0.
 
 ## Features
 
+- **Two connection modes** — API Key + Place ID or Google OAuth 2.0
 - Google Places API integration with smart caching
+- Google Business Profile OAuth — fetch ALL reviews from your account
+- Automatic background sync via WP Cron (every 6 hours, daily, or weekly)
 - Four layout types: **Slider**, **Grid**, **Masonry**, **List**
 - Dynamic content ordering — reorder photo, name, rating, text, date
 - Elementor widget with full Content and Style controls
 - Shortcode support with flexible attributes
 - Conditional asset loading for optimal performance
-- Admin settings with Test Fetch and Clear Cache
+- Admin settings with Test Fetch, Sync Now, and Clear Cache
+- AES-256-CBC encrypted token storage for OAuth mode
 
 ---
 
@@ -19,14 +23,22 @@
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate through the **Plugins** menu
 3. Go to **Settings → Devsroom Google Reviews**
-4. Enter your Google API Key and Place ID
+4. Choose a connection method:
+   - **API Key mode** — Enter your Google API Key and Place ID
+   - **OAuth mode** — Enter Client ID and Client Secret, then click Connect Google Account
 5. Use the shortcode or Elementor widget to display reviews
 
 ---
 
-## Getting Your Google API Credentials
+## Connection Modes
 
-### Step 1: Create a Google API Key
+### Mode 1: API Key + Place ID
+
+The original method. Enter your Google Cloud API Key and Place ID in settings. Uses the Google Places API to fetch reviews. Cached for the configured duration (default 24 hours).
+
+#### Getting Your Google API Credentials
+
+**Step 1: Create a Google API Key**
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project (or select an existing one)
@@ -37,12 +49,39 @@
 7. Copy the generated API key
 8. (Recommended) Restrict the key to **Places API** only
 
-### Step 2: Find Your Place ID
+**Step 2: Find Your Place ID**
 
 1. Go to the [Google Place ID Finder](https://developers.google.com/maps/documentation/places/web-service/place-id)
 2. Enter your business name in the search box
 3. Select your business from the results
 4. Copy the **Place ID** (format: `ChIJ...`)
+
+### Mode 2: Connect Google Account (OAuth 2.0)
+
+Connect directly to your Google Business Profile using OAuth 2.0. Fetches ALL reviews from your business location with no limit. Supports automatic background syncing.
+
+#### Setup Steps
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select your project (or create a new one)
+3. Navigate to **APIs & Services → Library**
+4. Enable the **Google Business Profile API**
+5. Go to **APIs & Services → Credentials**
+6. Click **Create Credentials → OAuth client ID**
+7. Application type: **Web application**
+8. Authorized redirect URIs: add the URI shown in the plugin settings
+9. Copy the **Client ID** and **Client Secret** into the plugin settings
+10. Click **Save Changes**, then click **Connect Google Account**
+11. Grant access to your Google Business Profile
+
+#### OAuth Features
+
+- Fetches all reviews (not limited to 5)
+- Automatic sync via WP Cron (every 6 hours, daily, weekly, or manual)
+- Sync Now button for immediate manual sync
+- Business location selector (if you have multiple locations)
+- Disconnect button to revoke access
+- Tokens encrypted with AES-256-CBC before storage
 
 ---
 
@@ -50,7 +89,14 @@
 
 Navigate to **Settings → Devsroom Google Reviews** in your WordPress dashboard.
 
-### Configuration Fields
+### Connection Method
+
+Choose between the two modes via radio toggle:
+
+- **API Key + Place ID** — Uses Google Places API
+- **Connect Google Account (OAuth)** — Uses Google Business Profile API
+
+### API Key Mode Settings
 
 | Field | Description |
 |-------|-------------|
@@ -58,10 +104,22 @@ Navigate to **Settings → Devsroom Google Reviews** in your WordPress dashboard
 | **Google Place ID** | Your business Place ID from Google |
 | **Cache Duration** | How long to cache reviews (in hours). Default: 24 hours |
 
+### OAuth Mode Settings
+
+| Field | Description |
+|-------|-------------|
+| **Client ID** | OAuth 2.0 Client ID from Google Cloud Console |
+| **Client Secret** | OAuth 2.0 Client Secret from Google Cloud Console |
+| **Business Location** | Select which business location to fetch reviews from |
+| **Sync Interval** | How often to sync reviews (Every 6 Hours, Daily, Weekly, Manual Only) |
+
 ### Action Buttons
 
-- **Test Fetch** — Tests your API connection and shows how many reviews were found
-- **Clear Cache** — Forces a fresh fetch on the next page load
+- **Test Fetch** (API Key mode) — Tests your API connection and shows how many reviews were found
+- **Clear Cache** (API Key mode) — Forces a fresh fetch on the next page load
+- **Connect Google Account** (OAuth mode) — Opens Google consent screen to authorize access
+- **Sync Now** (OAuth mode) — Immediately syncs reviews from your Google Business Profile
+- **Disconnect** (OAuth mode) — Revokes OAuth access and clears stored tokens
 
 ### Logs
 
@@ -81,7 +139,7 @@ Add the following shortcode to any page, post, or widget area:
 [devsroom_greviews]
 ```
 
-This will display reviews using default settings (grid layout, 5 reviews, minimum 1-star rating).
+This will display reviews using default settings (grid layout, 5 reviews, minimum 1-star rating). Works with both connection modes — no changes needed to your shortcode when switching modes.
 
 ### Shortcode Attributes
 
@@ -146,6 +204,8 @@ Customize the output with attributes:
 1. Edit a page with **Elementor**
 2. Search for **"Google Review ShowCase"** in the widget panel
 3. Drag it to your page
+
+The widget works with both connection modes. It reads from the same review source regardless of how the reviews were fetched.
 
 ### Content Tab
 
@@ -281,9 +341,9 @@ Elements hidden via visibility settings are automatically removed from the order
 
 ### No reviews showing
 
-- Verify your **API Key** and **Place ID** in Settings
-- Click **Test Fetch** to check the connection
-- Ensure the **Places API** is enabled in Google Cloud Console
+- **API Key mode:** Verify your API Key and Place ID, click Test Fetch
+- **OAuth mode:** Verify your connection is active, click Sync Now
+- Ensure the correct API is enabled in Google Cloud Console (Places API or Google Business Profile API)
 - Check that your business has reviews on Google
 
 ### "API Key or Place ID is not configured" error
@@ -293,14 +353,20 @@ Elements hidden via visibility settings are automatically removed from the order
 
 ### Reviews not updating
 
-- Reviews are cached for the duration set in settings (default: 24 hours)
-- Click **Clear Cache** in settings to force a fresh fetch
-- Reduce the cache duration if you need more frequent updates
+- **API Key mode:** Reviews are cached for the duration set in settings. Click Clear Cache to force a fresh fetch.
+- **OAuth mode:** Click Sync Now for immediate sync, or check the sync interval setting for automatic updates.
 
 ### "Invalid JSON response" error
 
 - Your API key may be invalid or restricted
 - Check that the Places API (not Maps JavaScript API) is enabled
+
+### OAuth connection failed
+
+- Verify Client ID and Client Secret are correct
+- Ensure the redirect URI in Google Cloud Console matches the one shown in plugin settings
+- Check that the Google Business Profile API is enabled
+- Make sure you selected **Web application** as the OAuth client type
 
 ### Styling looks broken
 
@@ -310,7 +376,7 @@ Elements hidden via visibility settings are automatically removed from the order
 
 ### Elementor widget shows a placeholder
 
-- Make sure your API Key and Place ID are configured in plugin settings
+- Make sure your connection is configured in plugin settings (either mode)
 - The placeholder is only visible in the Elementor editor
 
 ---
@@ -320,11 +386,25 @@ Elements hidden via visibility settings are automatically removed from the order
 **Does this plugin require Elementor?**
 No. The plugin works via shortcode on any WordPress site. The Elementor widget is an optional enhancement for Elementor users.
 
+**What is the difference between API Key and OAuth modes?**
+API Key mode uses the Google Places API and is limited to reviews available through that API. OAuth mode connects directly to your Google Business Profile and fetches ALL reviews with no limit. OAuth mode also supports automatic background syncing via WP Cron.
+
 **How often are reviews refreshed?**
-Reviews are cached for the duration set in your settings (default: 24 hours). You can change this or clear the cache manually.
+- **API Key mode:** Reviews are cached for the duration set in your settings (default: 24 hours). You can change this or clear the cache manually.
+- **OAuth mode:** Reviews are synced automatically based on your chosen interval (every 6 hours, daily, weekly, or manual only).
+
+**Can I use both connection modes at the same time?**
+No. You select one mode via the radio toggle in settings. Only the active mode is used to fetch reviews for display.
+
+**Is the OAuth connection secure?**
+Yes. OAuth tokens are encrypted with AES-256-CBC using your WordPress salt before being stored in the database. All API calls use WordPress core HTTP functions (no curl). Nonces are verified on all admin actions.
+
+**What happens to my reviews if I disconnect my Google account?**
+Disconnecting revokes the OAuth token and clears stored credentials, but existing synced reviews are kept in the database and continue to display on your site.
 
 **Can I show reviews from multiple locations?**
-The plugin currently supports one Place ID. To show reviews from multiple locations, you would need to change the Place ID in settings.
+- **API Key mode:** Supports one Place ID at a time.
+- **OAuth mode:** If you have multiple business locations, use the location selector in settings to choose which one to fetch reviews from.
 
 **Does this plugin slow down my site?**
 No. Reviews are cached in the database, so no API calls are made on page load. CSS and JavaScript are only loaded on pages that contain the shortcode or widget.
@@ -341,6 +421,18 @@ Google offers a monthly free tier for the Places API. Check [Google's pricing pa
 ---
 
 ## Changelog
+
+### 0.0.2
+
+- Added OAuth 2.0 connection mode (Connect Google Account)
+- Google Business Profile API integration for fetching all reviews
+- Automatic background sync via WP Cron (6 hours, daily, weekly, manual)
+- Business location selector for multi-location businesses
+- AES-256-CBC encrypted token storage
+- Mode toggle in settings (API Key vs OAuth)
+- Sync Now and Disconnect buttons
+- Updated admin settings page with dual-mode UI
+- Updated User Guide with OAuth setup instructions
 
 ### 0.0.1
 

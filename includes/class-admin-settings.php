@@ -11,9 +11,23 @@ class Devsroom_GReviews_Admin_Settings {
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
+
+        // API Key mode AJAX handlers.
         add_action( 'wp_ajax_devsroom_greviews_test_fetch', array( $this, 'ajax_test_fetch' ) );
         add_action( 'wp_ajax_devsroom_greviews_clear_cache', array( $this, 'ajax_clear_cache' ) );
+
+        // OAuth mode AJAX handlers.
+        add_action( 'wp_ajax_devsroom_greviews_oauth_start', array( $this, 'ajax_oauth_start' ) );
+        add_action( 'wp_ajax_devsroom_greviews_oauth_callback', array( $this, 'ajax_oauth_callback' ) );
+        add_action( 'wp_ajax_devsroom_greviews_sync_now', array( $this, 'ajax_sync_now' ) );
+        add_action( 'wp_ajax_devsroom_greviews_oauth_disconnect', array( $this, 'ajax_oauth_disconnect' ) );
+        add_action( 'wp_ajax_devsroom_greviews_fetch_locations', array( $this, 'ajax_fetch_locations' ) );
+
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+
+        // Schedule / unschedule cron on settings save.
+        add_action( 'update_option_devsroom_greviews_sync_interval', array( $this, 'handle_sync_interval_change' ), 10, 2 );
+        add_action( 'update_option_devsroom_greviews_connection_mode', array( $this, 'handle_connection_mode_change' ), 10, 2 );
     }
 
     /**
@@ -33,6 +47,7 @@ class Devsroom_GReviews_Admin_Settings {
      * Register plugin settings.
      */
     public function register_settings() {
+        // API Key mode settings.
         register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_api_key', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
@@ -45,6 +60,30 @@ class Devsroom_GReviews_Admin_Settings {
             'sanitize_callback' => 'absint',
             'default'           => 24,
         ) );
+
+        // Connection mode.
+        register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_connection_mode', array(
+            'sanitize_callback' => 'sanitize_text_field',
+            'default'           => 'api_key',
+        ) );
+
+        // OAuth settings.
+        register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_oauth_client_id', array(
+            'sanitize_callback' => 'sanitize_text_field',
+        ) );
+
+        register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_oauth_client_secret', array(
+            'sanitize_callback' => 'sanitize_text_field',
+        ) );
+
+        register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_sync_interval', array(
+            'sanitize_callback' => 'sanitize_text_field',
+            'default'           => 'daily',
+        ) );
+
+        register_setting( 'devsroom_greviews_settings', 'devsroom_greviews_oauth_location_name', array(
+            'sanitize_callback' => 'sanitize_text_field',
+        ) );
     }
 
     /**
@@ -55,6 +94,22 @@ class Devsroom_GReviews_Admin_Settings {
             return;
         }
 
+        // OAuth connect JS.
+        wp_enqueue_script(
+            'devsroom-greviews-oauth-connect',
+            DEVSROOM_GREVIEWS_URL . 'assets/js/oauth-connect.js',
+            array( 'jquery' ),
+            DEVSROOM_GREVIEWS_VERSION,
+            true
+        );
+
+        wp_localize_script( 'devsroom-greviews-oauth-connect', 'devsroom_greviews_admin', array(
+            'sync_nonce'       => wp_create_nonce( 'devsroom_greviews_sync_now' ),
+            'disconnect_nonce' => wp_create_nonce( 'devsroom_greviews_oauth_disconnect' ),
+            'locations_nonce'  => wp_create_nonce( 'devsroom_greviews_fetch_locations' ),
+        ) );
+
+        // Inline JS for API Key mode buttons (Test Fetch, Clear Cache).
         wp_add_inline_script( 'jquery', '
             jQuery(document).ready(function($) {
                 // Test Fetch
@@ -106,6 +161,10 @@ class Devsroom_GReviews_Admin_Settings {
         ' );
     }
 
+    // =========================================================================
+    // AJAX Handlers — API Key Mode
+    // =========================================================================
+
     /**
      * AJAX handler for Test Fetch.
      */
@@ -144,6 +203,253 @@ class Devsroom_GReviews_Admin_Settings {
         ) );
     }
 
+    // =========================================================================
+    // AJAX Handlers — OAuth Mode
+    // =========================================================================
+
+    /**
+     * AJAX handler — start OAuth flow (redirect to Google consent screen).
+     */
+    public function ajax_oauth_start() {
+        $nonce = isset( $_GET['nonce'] ) ? sanitize_text_field( $_GET['nonce'] ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'devsroom_greviews_oauth_start' ) ) {
+            wp_die( __( 'Security check failed.', 'devsroom-google-review-showcase' ) );
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Unauthorized.', 'devsroom-google-review-showcase' ) );
+        }
+
+        $client_id = get_option( 'devsroom_greviews_oauth_client_id', '' );
+        if ( empty( $client_id ) ) {
+            wp_die( __( 'Client ID is not configured. Please save your settings first.', 'devsroom-google-review-showcase' ) );
+        }
+
+        $redirect_uri = admin_url( 'admin-ajax.php?action=devsroom_greviews_oauth_callback' );
+        $state        = wp_create_nonce( 'devsroom_greviews_oauth_state' );
+
+        $auth_url = add_query_arg( array(
+            'client_id'     => $client_id,
+            'redirect_uri'  => $redirect_uri,
+            'response_type' => 'code',
+            'scope'         => 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/userinfo.profile',
+            'state'         => $state,
+            'access_type'   => 'offline',
+            'prompt'        => 'consent',
+        ), 'https://accounts.google.com/o/oauth2/v2/auth' );
+
+        wp_redirect( $auth_url );
+        exit;
+    }
+
+    /**
+     * AJAX handler — OAuth callback (Google redirects here after consent).
+     */
+    public function ajax_oauth_callback() {
+        $state = isset( $_GET['state'] ) ? sanitize_text_field( $_GET['state'] ) : '';
+        if ( ! wp_verify_nonce( $state, 'devsroom_greviews_oauth_state' ) ) {
+            wp_die( __( 'Security check failed. Please try connecting again.', 'devsroom-google-review-showcase' ) );
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Unauthorized.', 'devsroom-google-review-showcase' ) );
+        }
+
+        $code = isset( $_GET['code'] ) ? sanitize_text_field( $_GET['code'] ) : '';
+        if ( empty( $code ) ) {
+            $error = isset( $_GET['error'] ) ? sanitize_text_field( $_GET['error'] ) : 'unknown';
+            $this->oauth_callback_close( false, __( 'Google authorization was denied or failed.', 'devsroom-google-review-showcase' ) );
+            return;
+        }
+
+        $oauth  = new Devsroom_GReviews_OAuth();
+        $result = $oauth->exchange_code( $code );
+
+        if ( is_wp_error( $result ) ) {
+            $this->oauth_callback_close( false, $result->get_error_message() );
+            return;
+        }
+
+        // Fetch user info.
+        $oauth->fetch_user_info();
+
+        // Fetch and cache account + first location.
+        $api      = new Devsroom_GReviews_Google_API();
+        $accounts = $api->get_accounts();
+        if ( ! is_wp_error( $accounts ) ) {
+            $account_name = $accounts[0]['name'];
+            update_option( 'devsroom_greviews_oauth_account_name', $account_name, false );
+
+            $locations = $api->get_locations( $account_name );
+            if ( ! is_wp_error( $locations ) ) {
+                $location_name = $locations[0]['name'];
+                update_option( 'devsroom_greviews_oauth_location_name', $location_name, false );
+                $business_name = isset( $locations[0]['title'] ) ? $locations[0]['title'] : '';
+                update_option( 'devsroom_greviews_oauth_business_name', $business_name, false );
+            }
+        }
+
+        $this->oauth_callback_close( true );
+    }
+
+    /**
+     * Close the OAuth popup — call the parent's JS callback and die.
+     */
+    private function oauth_callback_close( $success, $error_message = '' ) {
+        $settings_url = admin_url( 'options-general.php?page=devsroom-google-reviews' );
+        ?>
+        <!DOCTYPE html>
+        <html><head><title><?php esc_html_e( 'Connecting...', 'devsroom-google-review-showcase' ); ?></title></head>
+        <body>
+        <p><?php $success ? esc_html_e( 'Connected successfully!', 'devsroom-google-review-showcase' ) : esc_html_e( 'Connection failed.', 'devsroom-google-review-showcase' ); ?></p>
+        <?php if ( ! $success && $error_message ) : ?>
+            <p style="color:red;"><?php echo esc_html( $error_message ); ?></p>
+        <?php endif; ?>
+        <script>
+            if (window.opener && window.opener.devsroom_greviews_oauth_complete) {
+                window.opener.devsroom_greviews_oauth_complete(<?php echo $success ? 'true' : 'false'; ?>);
+            }
+            window.close();
+            // Fallback if popup doesn't close.
+            setTimeout(function() { window.location.href = <?php echo wp_json_encode( $settings_url ); ?>; }, 2000);
+        </script>
+        </body></html>
+        <?php
+        exit;
+    }
+
+    /**
+     * AJAX handler — sync reviews now.
+     */
+    public function ajax_sync_now() {
+        check_ajax_referer( 'devsroom_greviews_sync_now', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $api    = new Devsroom_GReviews_Google_API();
+        $result = $api->sync_reviews();
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+
+        wp_send_json_success( array(
+            'message' => sprintf(
+                /* translators: %1$d: total reviews, %2$d: added, %3$d: updated */
+                __( 'Sync complete. Total: %1$d, Added: %2$d, Updated: %3$d', 'devsroom-google-review-showcase' ),
+                $result['total'],
+                $result['added'],
+                $result['updated']
+            ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — disconnect Google account.
+     */
+    public function ajax_oauth_disconnect() {
+        check_ajax_referer( 'devsroom_greviews_oauth_disconnect', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $oauth = new Devsroom_GReviews_OAuth();
+        $oauth->disconnect();
+
+        // Clear scheduled cron.
+        wp_clear_scheduled_hook( 'devsroom_greviews_cron_sync' );
+
+        wp_send_json_success( array(
+            'message' => __( 'Google account disconnected.', 'devsroom-google-review-showcase' ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — fetch business locations.
+     */
+    public function ajax_fetch_locations() {
+        check_ajax_referer( 'devsroom_greviews_fetch_locations', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $api      = new Devsroom_GReviews_Google_API();
+        $accounts = $api->get_accounts();
+
+        if ( is_wp_error( $accounts ) ) {
+            wp_send_json_error( array( 'message' => $accounts->get_error_message() ) );
+        }
+
+        $account_name = $accounts[0]['name'];
+        $locations    = $api->get_locations( $account_name );
+
+        if ( is_wp_error( $locations ) ) {
+            wp_send_json_error( array( 'message' => $locations->get_error_message() ) );
+        }
+
+        $formatted = array();
+        foreach ( $locations as $loc ) {
+            $formatted[] = array(
+                'name'  => $loc['name'],
+                'title' => $loc['title'],
+            );
+        }
+
+        wp_send_json_success( array(
+            'locations' => $formatted,
+            'message'   => sprintf(
+                /* translators: %d: number of locations */
+                __( 'Found %d locations.', 'devsroom-google-review-showcase' ),
+                count( $formatted )
+            ),
+        ) );
+    }
+
+    // =========================================================================
+    // Cron Management
+    // =========================================================================
+
+    /**
+     * Handle sync interval change — reschedule cron.
+     */
+    public function handle_sync_interval_change( $old_value, $new_value ) {
+        $this->update_cron_schedule( $new_value );
+    }
+
+    /**
+     * Handle connection mode change — schedule or clear cron.
+     */
+    public function handle_connection_mode_change( $old_value, $new_value ) {
+        if ( 'oauth' === $new_value ) {
+            $interval = get_option( 'devsroom_greviews_sync_interval', 'daily' );
+            $this->update_cron_schedule( $interval );
+        } else {
+            wp_clear_scheduled_hook( 'devsroom_greviews_cron_sync' );
+        }
+    }
+
+    /**
+     * Schedule or clear the cron based on interval value.
+     */
+    private function update_cron_schedule( $interval ) {
+        wp_clear_scheduled_hook( 'devsroom_greviews_cron_sync' );
+
+        if ( 'manual' === $interval ) {
+            return;
+        }
+
+        $wp_interval = 'devsroom_' . $interval;
+        wp_schedule_event( time(), $wp_interval, 'devsroom_greviews_cron_sync' );
+    }
+
+    // =========================================================================
+    // Settings Page Rendering
+    // =========================================================================
+
     /**
      * Render the settings page.
      */
@@ -175,95 +481,267 @@ class Devsroom_GReviews_Admin_Settings {
      * Render the Settings tab content.
      */
     private function render_settings_tab() {
+        $connection_mode = get_option( 'devsroom_greviews_connection_mode', 'api_key' );
+        $oauth           = new Devsroom_GReviews_OAuth();
+        $is_connected    = $oauth->is_connected();
+        $oauth_email     = get_option( 'devsroom_greviews_oauth_user_email', '' );
+        $oauth_name      = get_option( 'devsroom_greviews_oauth_user_name', '' );
+        $business_name   = get_option( 'devsroom_greviews_oauth_business_name', '' );
+        $last_sync       = get_option( 'devsroom_greviews_oauth_last_sync', '' );
+        $location_name   = get_option( 'devsroom_greviews_oauth_location_name', '' );
+        $sync_interval   = get_option( 'devsroom_greviews_sync_interval', 'daily' );
         ?>
         <br />
 
         <form method="post" action="options.php">
             <?php settings_fields( 'devsroom_greviews_settings' ); ?>
 
+            <!-- Connection Mode Toggle -->
             <table class="form-table">
                 <tr>
-                    <th scope="row">
-                        <label for="devsroom_greviews_api_key"><?php esc_html_e( 'Google API Key', 'devsroom-google-review-showcase' ); ?></label>
-                    </th>
+                    <th scope="row"><?php esc_html_e( 'Connection Method', 'devsroom-google-review-showcase' ); ?></th>
                     <td>
-                        <input type="password"
-                               id="devsroom_greviews_api_key"
-                               name="devsroom_greviews_api_key"
-                               value="<?php echo esc_attr( get_option( 'devsroom_greviews_api_key', '' ) ); ?>"
-                               class="regular-text" />
-                        <p class="description">
-                            <?php esc_html_e( 'Enter your Google Cloud API key with Places API enabled.', 'devsroom-google-review-showcase' ); ?>
-                        </p>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row">
-                        <label for="devsroom_greviews_place_id"><?php esc_html_e( 'Google Place ID', 'devsroom-google-review-showcase' ); ?></label>
-                    </th>
-                    <td>
-                        <input type="text"
-                               id="devsroom_greviews_place_id"
-                               name="devsroom_greviews_place_id"
-                               value="<?php echo esc_attr( get_option( 'devsroom_greviews_place_id', '' ) ); ?>"
-                               class="regular-text" />
-                        <p class="description">
-                            <?php esc_html_e( 'Your Google My Business Place ID.', 'devsroom-google-review-showcase' ); ?>
-                        </p>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row">
-                        <label for="devsroom_greviews_cache_duration"><?php esc_html_e( 'Cache Duration (hours)', 'devsroom-google-review-showcase' ); ?></label>
-                    </th>
-                    <td>
-                        <input type="number"
-                               id="devsroom_greviews_cache_duration"
-                               name="devsroom_greviews_cache_duration"
-                               value="<?php echo esc_attr( get_option( 'devsroom_greviews_cache_duration', 24 ) ); ?>"
-                               min="1"
-                               max="168"
-                               class="small-text" />
-                        <p class="description">
-                            <?php esc_html_e( 'How long to cache reviews before fetching fresh data (1-168 hours). Default: 24 hours.', 'devsroom-google-review-showcase' ); ?>
-                        </p>
+                        <fieldset>
+                            <label style="margin-right:20px;">
+                                <input type="radio" name="devsroom_greviews_connection_mode" value="api_key" <?php checked( $connection_mode, 'api_key' ); ?> />
+                                <?php esc_html_e( 'API Key + Place ID', 'devsroom-google-review-showcase' ); ?>
+                            </label>
+                            <label>
+                                <input type="radio" name="devsroom_greviews_connection_mode" value="oauth" <?php checked( $connection_mode, 'oauth' ); ?> />
+                                <?php esc_html_e( 'Connect Google Account (OAuth)', 'devsroom-google-review-showcase' ); ?>
+                            </label>
+                        </fieldset>
+                        <p class="description"><?php esc_html_e( 'Choose how to connect to Google. OAuth fetches all reviews from your Business Profile.', 'devsroom-google-review-showcase' ); ?></p>
                     </td>
                 </tr>
             </table>
+
+            <!-- API Key Mode Section -->
+            <div id="devsroom-greviews-mode-api-key" style="<?php echo 'api_key' === $connection_mode ? '' : 'display:none;'; ?>">
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="devsroom_greviews_api_key"><?php esc_html_e( 'Google API Key', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password"
+                                   id="devsroom_greviews_api_key"
+                                   name="devsroom_greviews_api_key"
+                                   value="<?php echo esc_attr( get_option( 'devsroom_greviews_api_key', '' ) ); ?>"
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php esc_html_e( 'Enter your Google Cloud API key with Places API enabled.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="devsroom_greviews_place_id"><?php esc_html_e( 'Google Place ID', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text"
+                                   id="devsroom_greviews_place_id"
+                                   name="devsroom_greviews_place_id"
+                                   value="<?php echo esc_attr( get_option( 'devsroom_greviews_place_id', '' ) ); ?>"
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php esc_html_e( 'Your Google My Business Place ID.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="devsroom_greviews_cache_duration"><?php esc_html_e( 'Cache Duration (hours)', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="number"
+                                   id="devsroom_greviews_cache_duration"
+                                   name="devsroom_greviews_cache_duration"
+                                   value="<?php echo esc_attr( get_option( 'devsroom_greviews_cache_duration', 24 ) ); ?>"
+                                   min="1"
+                                   max="168"
+                                   class="small-text" />
+                            <p class="description">
+                                <?php esc_html_e( 'How long to cache reviews before fetching fresh data (1-168 hours). Default: 24 hours.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- OAuth Mode Section -->
+            <div id="devsroom-greviews-mode-oauth" style="<?php echo 'oauth' === $connection_mode ? '' : 'display:none;'; ?>">
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="devsroom_greviews_oauth_client_id"><?php esc_html_e( 'Client ID', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="text"
+                                   id="devsroom_greviews_oauth_client_id"
+                                   name="devsroom_greviews_oauth_client_id"
+                                   value="<?php echo esc_attr( get_option( 'devsroom_greviews_oauth_client_id', '' ) ); ?>"
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php esc_html_e( 'OAuth 2.0 Client ID from Google Cloud Console.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
+                            <label for="devsroom_greviews_oauth_client_secret"><?php esc_html_e( 'Client Secret', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="password"
+                                   id="devsroom_greviews_oauth_client_secret"
+                                   name="devsroom_greviews_oauth_client_secret"
+                                   value="<?php echo esc_attr( get_option( 'devsroom_greviews_oauth_client_secret', '' ) ); ?>"
+                                   class="regular-text" />
+                            <p class="description">
+                                <?php esc_html_e( 'OAuth 2.0 Client Secret from Google Cloud Console.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <?php if ( $is_connected ) : ?>
+                        <!-- Connected status -->
+                        <tr>
+                            <th scope="row"><?php esc_html_e( 'Connected Account', 'devsroom-google-review-showcase' ); ?></th>
+                            <td>
+                                <p>
+                                    <strong><?php echo esc_html( $oauth_name ); ?></strong>
+                                    <?php if ( $oauth_email ) : ?>
+                                        <span style="color:#666;">(<?php echo esc_html( $oauth_email ); ?>)</span>
+                                    <?php endif; ?>
+                                </p>
+                                <?php if ( $business_name ) : ?>
+                                    <p><?php esc_html_e( 'Business:', 'devsroom-google-review-showcase' ); ?> <strong><?php echo esc_html( $business_name ); ?></strong></p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+
+                        <!-- Location selector -->
+                        <tr>
+                            <th scope="row">
+                                <label for="devsroom_greviews_oauth_location_name"><?php esc_html_e( 'Business Location', 'devsroom-google-review-showcase' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="text"
+                                       id="devsroom_greviews_oauth_location_name"
+                                       name="devsroom_greviews_oauth_location_name"
+                                       value="<?php echo esc_attr( $location_name ); ?>"
+                                       class="regular-text" readonly />
+                                <button type="button" id="devsroom-greviews-fetch-locations" class="button button-secondary" style="margin-left:8px;">
+                                    <?php esc_html_e( 'Refresh Locations', 'devsroom-google-review-showcase' ); ?>
+                                </button>
+                                <span id="devsroom-greviews-locations-result" style="margin-left:8px;"></span>
+                                <p class="description"><?php esc_html_e( 'Select the business location to fetch reviews from.', 'devsroom-google-review-showcase' ); ?></p>
+                            </td>
+                        </tr>
+
+                        <!-- Sync interval -->
+                        <tr>
+                            <th scope="row">
+                                <label for="devsroom_greviews_sync_interval"><?php esc_html_e( 'Sync Interval', 'devsroom-google-review-showcase' ); ?></label>
+                            </th>
+                            <td>
+                                <select id="devsroom_greviews_sync_interval" name="devsroom_greviews_sync_interval">
+                                    <option value="6hours" <?php selected( $sync_interval, '6hours' ); ?>><?php esc_html_e( 'Every 6 Hours', 'devsroom-google-review-showcase' ); ?></option>
+                                    <option value="daily" <?php selected( $sync_interval, 'daily' ); ?>><?php esc_html_e( 'Daily', 'devsroom-google-review-showcase' ); ?></option>
+                                    <option value="weekly" <?php selected( $sync_interval, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'devsroom-google-review-showcase' ); ?></option>
+                                    <option value="manual" <?php selected( $sync_interval, 'manual' ); ?>><?php esc_html_e( 'Manual Only', 'devsroom-google-review-showcase' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+
+                        <?php if ( $last_sync ) : ?>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Last Sync', 'devsroom-google-review-showcase' ); ?></th>
+                                <td><?php echo esc_html( $last_sync ); ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </table>
+            </div>
 
             <?php submit_button(); ?>
         </form>
 
         <hr />
 
+        <!-- Actions Section -->
         <h2><?php esc_html_e( 'Actions', 'devsroom-google-review-showcase' ); ?></h2>
 
-        <table class="form-table">
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Test Connection', 'devsroom-google-review-showcase' ); ?></th>
-                <td>
-                    <button type="button" id="devsroom-greviews-test-fetch" class="button button-secondary">
-                        <?php esc_html_e( 'Test Fetch', 'devsroom-google-review-showcase' ); ?>
-                    </button>
-                    <span id="devsroom-greviews-test-result" style="margin-left:10px;"></span>
-                </td>
-            </tr>
+        <!-- API Key Actions -->
+        <div id="devsroom-greviews-actions-api-key" style="<?php echo 'api_key' === $connection_mode ? '' : 'display:none;'; ?>">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Test Connection', 'devsroom-google-review-showcase' ); ?></th>
+                    <td>
+                        <button type="button" id="devsroom-greviews-test-fetch" class="button button-secondary">
+                            <?php esc_html_e( 'Test Fetch', 'devsroom-google-review-showcase' ); ?>
+                        </button>
+                        <span id="devsroom-greviews-test-result" style="margin-left:10px;"></span>
+                    </td>
+                </tr>
 
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Clear Cache', 'devsroom-google-review-showcase' ); ?></th>
-                <td>
-                    <button type="button" id="devsroom-greviews-clear-cache" class="button button-secondary">
-                        <?php esc_html_e( 'Clear Cache', 'devsroom-google-review-showcase' ); ?>
-                    </button>
-                    <span id="devsroom-greviews-cache-result" style="margin-left:10px;"></span>
-                </td>
-            </tr>
-        </table>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Clear Cache', 'devsroom-google-review-showcase' ); ?></th>
+                    <td>
+                        <button type="button" id="devsroom-greviews-clear-cache" class="button button-secondary">
+                            <?php esc_html_e( 'Clear Cache', 'devsroom-google-review-showcase' ); ?>
+                        </button>
+                        <span id="devsroom-greviews-cache-result" style="margin-left:10px;"></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- OAuth Actions -->
+        <div id="devsroom-greviews-actions-oauth" style="<?php echo 'oauth' === $connection_mode ? '' : 'display:none;'; ?>">
+            <table class="form-table">
+                <?php if ( ! $is_connected ) : ?>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Connect', 'devsroom-google-review-showcase' ); ?></th>
+                        <td>
+                            <button type="button" id="devsroom-greviews-oauth-connect" class="button button-primary"
+                                    data-nonce="<?php echo esc_attr( wp_create_nonce( 'devsroom_greviews_oauth_start' ) ); ?>">
+                                <?php esc_html_e( 'Connect Google Account', 'devsroom-google-review-showcase' ); ?>
+                            </button>
+                            <p class="description"><?php esc_html_e( 'Save Client ID and Client Secret first, then click Connect.', 'devsroom-google-review-showcase' ); ?></p>
+                        </td>
+                    </tr>
+                <?php else : ?>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Sync Reviews', 'devsroom-google-review-showcase' ); ?></th>
+                        <td>
+                            <button type="button" id="devsroom-greviews-sync-now" class="button button-secondary">
+                                <?php esc_html_e( 'Sync Now', 'devsroom-google-review-showcase' ); ?>
+                            </button>
+                            <span id="devsroom-greviews-sync-result" style="margin-left:10px;"></span>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Disconnect', 'devsroom-google-review-showcase' ); ?></th>
+                        <td>
+                            <button type="button" id="devsroom-greviews-oauth-disconnect" class="button button-link-delete">
+                                <?php esc_html_e( 'Disconnect', 'devsroom-google-review-showcase' ); ?>
+                            </button>
+                            <span id="devsroom-greviews-disconnect-result" style="margin-left:10px;"></span>
+                            <p class="description"><?php esc_html_e( 'Disconnects your Google account. Existing reviews will be kept.', 'devsroom-google-review-showcase' ); ?></p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </table>
+        </div>
 
         <hr />
 
+        <!-- Logs (API Key mode only) -->
         <h2><?php esc_html_e( 'Logs', 'devsroom-google-review-showcase' ); ?></h2>
 
         <?php
@@ -360,6 +838,32 @@ class Devsroom_GReviews_Admin_Settings {
 
             <hr />
 
+            <h2>OAuth Connection (Connect Google Account)</h2>
+
+            <h3>Step 1: Create OAuth Credentials</h3>
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                <li>Select your project (or create a new one)</li>
+                <li>Navigate to <strong>APIs &amp; Services &rarr; Library</strong></li>
+                <li>Enable <strong>Google Business Profile API</strong></li>
+                <li>Go to <strong>APIs &amp; Services &rarr; Credentials</strong></li>
+                <li>Click <strong>Create Credentials &rarr; OAuth client ID</strong></li>
+                <li>Application type: <strong>Web application</strong></li>
+                <li>Authorized redirect URIs: add <code><?php echo esc_html( admin_url( 'admin-ajax.php?action=devsroom_greviews_oauth_callback' ) ); ?></code></li>
+                <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+            </ol>
+
+            <h3>Step 2: Connect Your Account</h3>
+            <ol>
+                <li>Paste the Client ID and Client Secret into the settings</li>
+                <li>Click <strong>Save Changes</strong></li>
+                <li>Click <strong>Connect Google Account</strong></li>
+                <li>Grant access to your Google Business Profile</li>
+                <li>Reviews will be synced automatically based on your chosen interval</li>
+            </ol>
+
+            <hr />
+
             <h2>Using the Shortcode</h2>
 
             <p>Add the following shortcode to any page, post, or widget area:</p>
@@ -447,8 +951,9 @@ class Devsroom_GReviews_Admin_Settings {
             <h3>No reviews showing</h3>
             <ul>
                 <li>Verify your <strong>API Key</strong> and <strong>Place ID</strong> in Settings</li>
-                <li>Click <strong>Test Fetch</strong> to check the connection</li>
-                <li>Ensure the <strong>Places API</strong> is enabled in Google Cloud Console</li>
+                <li>Or verify your OAuth connection is active</li>
+                <li>Click <strong>Test Fetch</strong> or <strong>Sync Now</strong> to check the connection</li>
+                <li>Ensure the <strong>Places API</strong> or <strong>Google Business Profile API</strong> is enabled in Google Cloud Console</li>
                 <li>Check that your business has reviews on Google</li>
             </ul>
 
@@ -463,6 +968,7 @@ class Devsroom_GReviews_Admin_Settings {
                 <li>Reviews are cached for the duration set in settings (default: 24 hours)</li>
                 <li>Click <strong>Clear Cache</strong> to force a fresh fetch</li>
                 <li>Reduce the cache duration if you need more frequent updates</li>
+                <li>For OAuth mode, click <strong>Sync Now</strong> or check the sync interval setting</li>
             </ul>
 
             <h3>Styling looks broken</h3>
@@ -486,7 +992,8 @@ class Devsroom_GReviews_Admin_Settings {
             No. The plugin works via shortcode on any WordPress site. Elementor is optional.</p>
 
             <p><strong>How often are reviews refreshed?</strong><br />
-            Reviews are cached for the duration set in your settings (default: 24 hours). You can change this or clear the cache manually.</p>
+            API Key mode: reviews are cached for the duration set in your settings (default: 24 hours). You can change this or clear the cache manually.<br />
+            OAuth mode: reviews are synced automatically based on your chosen interval (every 6 hours, daily, weekly, or manual only).</p>
 
             <p><strong>Does this plugin slow down my site?</strong><br />
             No. Reviews are cached in the database, so no API calls are made on page load. CSS and JavaScript are only loaded on pages with the shortcode or widget.</p>
@@ -499,6 +1006,9 @@ class Devsroom_GReviews_Admin_Settings {
 
             <p><strong>Is the Google API free?</strong><br />
             Google offers a monthly free tier for the Places API. With caching enabled, you'll only make 1 API call per cache refresh cycle.</p>
+
+            <p><strong>What is the difference between API Key and OAuth modes?</strong><br />
+            API Key mode uses the Google Places API and is limited to reviews available through that API. OAuth mode connects directly to your Google Business Profile and fetches ALL reviews with no limit. OAuth mode also supports automatic background syncing.</p>
 
         </div>
         <?php
