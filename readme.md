@@ -9,6 +9,7 @@
 - Google Business Profile OAuth — fetch ALL reviews from your account
 - Automatic background sync via WP Cron (every 6 hours, daily, or weekly)
 - Four layout types: **Slider**, **Grid**, **Masonry**, **List**
+- Advanced slider settings — responsive slides on display/scroll, autoplay, pause on hover/interaction, infinite scroll, transition duration, direction (LTR/RTL), offset sides
 - Dynamic content ordering — reorder photo, name, rating, text, date
 - Elementor widget with full Content and Style controls
 - Shortcode support with flexible attributes
@@ -22,7 +23,7 @@
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate through the **Plugins** menu
-3. Go to **Settings → Devsroom Google Reviews**
+3. Go to **Google Reviews** (top-level menu in admin sidebar)
 4. Choose a connection method:
    - **API Key mode** — Enter your Google API Key and Place ID
    - **OAuth mode** — Enter Client ID and Client Secret, then click Connect Google Account
@@ -87,7 +88,7 @@ Connect directly to your Google Business Profile using OAuth 2.0. Fetches ALL re
 
 ## Plugin Settings
 
-Navigate to **Settings → Devsroom Google Reviews** in your WordPress dashboard.
+Navigate to **Google Reviews** (top-level menu in admin sidebar) in your WordPress dashboard.
 
 ### Connection Method
 
@@ -212,7 +213,23 @@ The widget works with both connection modes. It reads from the same review sourc
 #### Layout Section
 
 - **Layout Type** — Choose Slider, Grid, Masonry, or List
-- **Columns** — Number of columns for Grid and Masonry (1–4)
+- **Columns** — Number of columns for Grid, Masonry, and List layouts (1–6, responsive)
+
+#### Slider Settings (slider layout only)
+
+- **Slides on Display** — Number of visible slides per view (responsive for desktop/tablet/mobile)
+- **Slides on Scroll** — Number of slides to scroll at once (responsive for desktop/tablet/mobile)
+- **Equal Height** — Make all slide cards the same height
+- **Autoplay** — Enable automatic slide rotation
+- **Scroll Speed (ms)** — Delay between slide transitions when autoplay is on
+- **Pause on Hover** — Pause autoplay when hovering over the slider
+- **Pause on Interaction** — Pause autoplay after user interaction (swipe/click)
+- **Infinite Scroll** — Loop slides continuously
+- **Transition Duration (ms)** — Speed of the slide transition animation
+- **Slide Gap (px)** — Space between slides
+- **Direction** — Left to Right or Right to Left
+- **Offset Sides** — Add offset to slider edges: none, both, left, or right
+- **Offset Width (px)** — Width of the offset (responsive for desktop/tablet/mobile)
 
 #### Query Settings
 
@@ -282,10 +299,13 @@ Control the position of elements within each review card:
 
 #### Slider Controls (slider layout only)
 
+- Custom Previous/Next arrow icon (Elementor icon picker)
 - Arrow color
-- Dot color
-- Autoplay on/off
-- Autoplay speed (milliseconds)
+- Arrow background color
+- Arrow size
+- Dot color — Normal
+- Dot color — Active
+- Dot size
 
 ---
 
@@ -299,10 +319,15 @@ Displays reviews in a responsive CSS grid. Cards have equal width with automatic
 
 A carousel powered by Swiper.js with:
 
-- Previous/Next navigation arrows
-- Pagination dots
-- Optional autoplay
-- Responsive breakpoints (1 column on mobile, 2 on tablet, 3 on desktop)
+- Previous/Next navigation arrows (customizable icons)
+- Pagination dots (separate normal/active colors)
+- Autoplay with configurable speed, pause on hover, pause on interaction
+- Infinite scroll (loop)
+- Configurable transition duration
+- Responsive slides on display and slides on scroll
+- Direction control (LTR/RTL)
+- Offset sides (none/both/left/right) with responsive width
+- Equal height mode
 
 ### Masonry
 
@@ -310,7 +335,7 @@ A Pinterest-style layout where cards have varying heights based on their content
 
 ### List
 
-A vertical list where each review card displays horizontally — reviewer photo on the left, content on the right. Responsive: stacks vertically on mobile.
+A vertical list where each review card displays horizontally — reviewer photo on the left, content on the right. Supports responsive columns for multi-column layouts. Responsive: stacks vertically on mobile.
 
 ---
 
@@ -348,7 +373,7 @@ Elements hidden via visibility settings are automatically removed from the order
 
 ### "API Key or Place ID is not configured" error
 
-- Go to **Settings → Devsroom Google Reviews**
+- Go to **Google Reviews** in the admin sidebar
 - Make sure both fields are filled and saved
 
 ### Reviews not updating
@@ -421,6 +446,22 @@ Google offers a monthly free tier for the Places API. Check [Google's pricing pa
 ---
 
 ## Changelog
+
+### 0.0.3
+
+- Added Slider Settings section in Elementor widget with advanced controls
+- Added responsive Slides on Display control for slider
+- Added responsive Slides on Scroll control for slider
+- Added Equal Height toggle for slider cards
+- Added Autoplay with Scroll Speed, Pause on Hover, and Pause on Interaction
+- Added Infinite Scroll toggle
+- Added Transition Duration control
+- Added Direction control (LTR/RTL) for slider
+- Added Offset Sides (none/both/left/right) with responsive Offset Width for slider
+- Added custom icon picker for Previous/Next arrow icons
+- Added separate Dot Color controls for normal and active states
+- Added responsive Columns control for List layout
+- Moved plugin menu from Settings submenu to top-level admin menu
 
 ### 0.0.2
 

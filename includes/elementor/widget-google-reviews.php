@@ -71,7 +71,132 @@ class Devsroom_GReviews_Widget extends \Elementor\Widget_Base {
             'type'      => \Elementor\Controls_Manager::SELECT,
             'default'   => '3',
             'options'   => array( '1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6' ),
-            'condition' => array( 'layout_type' => array( 'grid', 'masonry' ) ),
+            'condition' => array( 'layout_type' => array( 'grid', 'masonry', 'list' ) ),
+        ) );
+
+        $this->end_controls_section();
+
+        // --- Slider Settings ---
+        $this->start_controls_section( 'section_slider_settings', array(
+            'label'     => __( 'Slider Settings', 'devsroom-google-review-showcase' ),
+            'condition' => array( 'layout_type' => 'slider' ),
+        ) );
+
+        $this->add_responsive_control( 'slides_per_view', array(
+            'label'   => __( 'Slides on Display', 'devsroom-google-review-showcase' ),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => '3',
+            'options' => array( '1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6' ),
+        ) );
+
+        $this->add_responsive_control( 'slides_per_scroll', array(
+            'label'   => __( 'Slides on Scroll', 'devsroom-google-review-showcase' ),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => '1',
+            'options' => array( '1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6' ),
+        ) );
+
+        $this->add_control( 'equal_height', array(
+            'label'        => __( 'Equal Height', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'no',
+            'label_on'     => __( 'On', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'Off', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+        ) );
+
+        $this->add_control( 'slider_autoplay', array(
+            'label'        => __( 'Autoplay', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'no',
+            'label_on'     => __( 'On', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'Off', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+        ) );
+
+        $this->add_control( 'autoplay_speed', array(
+            'label'     => __( 'Scroll Speed (ms)', 'devsroom-google-review-showcase' ),
+            'type'      => \Elementor\Controls_Manager::NUMBER,
+            'default'   => 3000,
+            'min'       => 100,
+            'max'       => 10000,
+            'condition' => array( 'slider_autoplay' => 'yes' ),
+        ) );
+
+        $this->add_control( 'pause_on_hover', array(
+            'label'        => __( 'Pause on Hover', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'label_on'     => __( 'On', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'Off', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+            'condition'    => array( 'slider_autoplay' => 'yes' ),
+        ) );
+
+        $this->add_control( 'pause_on_interaction', array(
+            'label'        => __( 'Pause on Interaction', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'label_on'     => __( 'On', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'Off', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+            'condition'    => array( 'slider_autoplay' => 'yes' ),
+        ) );
+
+        $this->add_control( 'infinite_scroll', array(
+            'label'        => __( 'Infinite Scroll', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'label_on'     => __( 'On', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'Off', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+        ) );
+
+        $this->add_control( 'transition_duration', array(
+            'label'   => __( 'Transition Duration (ms)', 'devsroom-google-review-showcase' ),
+            'type'    => \Elementor\Controls_Manager::NUMBER,
+            'default' => 300,
+            'min'     => 100,
+            'max'     => 3000,
+        ) );
+
+        $this->add_control( 'slide_gap', array(
+            'label'      => __( 'Slide Gap (px)', 'devsroom-google-review-showcase' ),
+            'type'       => \Elementor\Controls_Manager::SLIDER,
+            'size_units' => array( 'px' ),
+            'range'      => array( 'px' => array( 'max' => 60 ) ),
+            'default'    => array( 'size' => 20 ),
+        ) );
+
+        $this->add_control( 'slider_direction', array(
+            'label'   => __( 'Direction', 'devsroom-google-review-showcase' ),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => 'ltr',
+            'options' => array(
+                'ltr' => __( 'Left to Right', 'devsroom-google-review-showcase' ),
+                'rtl' => __( 'Right to Left', 'devsroom-google-review-showcase' ),
+            ),
+        ) );
+
+        $this->add_control( 'offset_sides', array(
+            'label'   => __( 'Offset Sides', 'devsroom-google-review-showcase' ),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => 'none',
+            'options' => array(
+                'none'  => __( 'None', 'devsroom-google-review-showcase' ),
+                'both'  => __( 'Both', 'devsroom-google-review-showcase' ),
+                'left'  => __( 'Left', 'devsroom-google-review-showcase' ),
+                'right' => __( 'Right', 'devsroom-google-review-showcase' ),
+            ),
+        ) );
+
+        $this->add_responsive_control( 'offset_width', array(
+            'label'      => __( 'Offset Width (px)', 'devsroom-google-review-showcase' ),
+            'type'       => \Elementor\Controls_Manager::SLIDER,
+            'size_units' => array( 'px' ),
+            'range'      => array( 'px' => array( 'min' => 0, 'max' => 200 ) ),
+            'default'    => array( 'size' => 0 ),
+            'condition'  => array( 'offset_sides!' => 'none' ),
         ) );
 
         $this->end_controls_section();
@@ -516,36 +641,115 @@ class Devsroom_GReviews_Widget extends \Elementor\Widget_Base {
             'condition' => array( 'layout_type' => 'slider' ),
         ) );
 
+        $this->add_control( 'slider_navigation', array(
+            'label'        => __( 'Show Navigation Arrows', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'label_on'     => __( 'Yes', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'No', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+        ) );
+
+        $this->add_control( 'slider_pagination', array(
+            'label'        => __( 'Show Pagination Dots', 'devsroom-google-review-showcase' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'default'      => 'yes',
+            'label_on'     => __( 'Yes', 'devsroom-google-review-showcase' ),
+            'label_off'    => __( 'No', 'devsroom-google-review-showcase' ),
+            'return_value' => 'yes',
+        ) );
+
+        $this->add_control( 'arrow_icon_prev', array(
+            'label'                  => __( 'Previous Arrow Icon', 'devsroom-google-review-showcase' ),
+            'type'                   => \Elementor\Controls_Manager::ICONS,
+            'default'                => array(
+                'value'   => 'fas fa-chevron-left',
+                'library' => 'fa-solid',
+            ),
+            'recommended'            => array(
+                'fa-solid' => array( 'chevron-left', 'arrow-left', 'angle-left', 'caret-left', 'long-arrow-alt-left' ),
+            ),
+            'condition'              => array( 'slider_navigation' => 'yes' ),
+            'fa4CompatibilityValue'  => 'fa fa-chevron-left',
+        ) );
+
+        $this->add_control( 'arrow_icon_next', array(
+            'label'                  => __( 'Next Arrow Icon', 'devsroom-google-review-showcase' ),
+            'type'                   => \Elementor\Controls_Manager::ICONS,
+            'default'                => array(
+                'value'   => 'fas fa-chevron-right',
+                'library' => 'fa-solid',
+            ),
+            'recommended'            => array(
+                'fa-solid' => array( 'chevron-right', 'arrow-right', 'angle-right', 'caret-right', 'long-arrow-alt-right' ),
+            ),
+            'condition'              => array( 'slider_navigation' => 'yes' ),
+            'fa4CompatibilityValue'  => 'fa fa-chevron-right',
+        ) );
+
         $this->add_control( 'arrow_color', array(
             'label'     => __( 'Arrow Color', 'devsroom-google-review-showcase' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#6b7280',
             'selectors' => array(
                 '{{WRAPPER}} .swiper-button-prev, {{WRAPPER}} .swiper-button-next' => 'color: {{VALUE}};',
+                '{{WRAPPER}} .swiper-button-prev svg, {{WRAPPER}} .swiper-button-next svg' => 'fill: {{VALUE}};',
             ),
+            'condition' => array( 'slider_navigation' => 'yes' ),
         ) );
 
-        $this->add_control( 'dot_color', array(
-            'label'     => __( 'Dot Color', 'devsroom-google-review-showcase' ),
+        $this->add_control( 'arrow_bg_color', array(
+            'label'     => __( 'Arrow Background', 'devsroom-google-review-showcase' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '',
             'selectors' => array(
-                '{{WRAPPER}} .swiper-pagination-bullet'         => 'background: {{VALUE}};',
-                '{{WRAPPER}} .swiper-pagination-bullet-active'  => 'background: {{VALUE}};',
+                '{{WRAPPER}} .swiper-button-prev, {{WRAPPER}} .swiper-button-next' => 'background-color: {{VALUE}};',
             ),
+            'condition' => array( 'slider_navigation' => 'yes' ),
         ) );
 
-        $this->add_control( 'autoplay', array(
-            'label'   => __( 'Autoplay', 'devsroom-google-review-showcase' ),
-            'type'    => \Elementor\Controls_Manager::SWITCHER,
-            'default' => 'no',
+        $this->add_control( 'arrow_size', array(
+            'label'      => __( 'Arrow Size', 'devsroom-google-review-showcase' ),
+            'type'       => \Elementor\Controls_Manager::SLIDER,
+            'size_units' => array( 'px' ),
+            'range'      => array( 'px' => array( 'min' => 20, 'max' => 60 ) ),
+            'default'    => array( 'size' => 44 ),
+            'selectors'  => array(
+                '{{WRAPPER}} .swiper-button-prev, {{WRAPPER}} .swiper-button-next' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+            ),
+            'condition'  => array( 'slider_navigation' => 'yes' ),
         ) );
 
-        $this->add_control( 'autoplay_speed', array(
-            'label'     => __( 'Autoplay Speed (ms)', 'devsroom-google-review-showcase' ),
-            'type'      => \Elementor\Controls_Manager::NUMBER,
-            'default'   => 3000,
-            'min'       => 1000,
-            'max'       => 10000,
-            'condition' => array( 'autoplay' => 'yes' ),
+        $this->add_control( 'dot_color_normal', array(
+            'label'     => __( 'Dot Color - Normal', 'devsroom-google-review-showcase' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#6b7280',
+            'selectors' => array(
+                '{{WRAPPER}} .swiper-pagination-bullet' => 'background: {{VALUE}};',
+            ),
+            'condition' => array( 'slider_pagination' => 'yes' ),
+        ) );
+
+        $this->add_control( 'dot_color_active', array(
+            'label'     => __( 'Dot Color - Active', 'devsroom-google-review-showcase' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#6b7280',
+            'selectors' => array(
+                '{{WRAPPER}} .swiper-pagination-bullet-active' => 'background: {{VALUE}};',
+            ),
+            'condition' => array( 'slider_pagination' => 'yes' ),
+        ) );
+
+        $this->add_control( 'dot_size', array(
+            'label'      => __( 'Dot Size', 'devsroom-google-review-showcase' ),
+            'type'       => \Elementor\Controls_Manager::SLIDER,
+            'size_units' => array( 'px' ),
+            'range'      => array( 'px' => array( 'min' => 4, 'max' => 16 ) ),
+            'default'    => array( 'size' => 8 ),
+            'selectors'  => array(
+                '{{WRAPPER}} .swiper-pagination-bullet' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+            ),
+            'condition'  => array( 'slider_pagination' => 'yes' ),
         ) );
 
         $this->end_controls_section();
@@ -562,7 +766,7 @@ class Devsroom_GReviews_Widget extends \Elementor\Widget_Base {
         if ( empty( get_option( 'devsroom_greviews_api_key' ) ) || empty( get_option( 'devsroom_greviews_place_id' ) ) ) {
             if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
                 echo '<div style="padding:20px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;text-align:center;">';
-                esc_html_e( 'Please configure your Google API Key and Place ID in Settings → Devsroom Google Reviews.', 'devsroom-google-review-showcase' );
+                esc_html_e( 'Please configure your Google API Key and Place ID in Google Reviews settings.', 'devsroom-google-review-showcase' );
                 echo '</div>';
             }
             return;
@@ -593,8 +797,32 @@ class Devsroom_GReviews_Widget extends \Elementor\Widget_Base {
 
         // Slider-specific settings.
         if ( 'slider' === $settings['layout_type'] ) {
-            $render_settings['autoplay']       = 'yes' === $settings['autoplay'];
-            $render_settings['autoplay_speed'] = intval( $settings['autoplay_speed'] );
+            $render_settings['autoplay']                = 'yes' === $settings['slider_autoplay'];
+            $render_settings['autoplay_speed']          = intval( $settings['autoplay_speed'] );
+            $render_settings['slides_per_view']         = intval( $settings['slides_per_view'] );
+            $render_settings['slides_per_view_tablet']  = ! empty( $settings['slides_per_view_tablet'] ) ? intval( $settings['slides_per_view_tablet'] ) : 2;
+            $render_settings['slides_per_view_mobile']  = ! empty( $settings['slides_per_view_mobile'] ) ? intval( $settings['slides_per_view_mobile'] ) : 1;
+            $render_settings['slides_per_scroll']       = intval( $settings['slides_per_scroll'] );
+            $render_settings['slides_per_scroll_tablet'] = ! empty( $settings['slides_per_scroll_tablet'] ) ? intval( $settings['slides_per_scroll_tablet'] ) : 1;
+            $render_settings['slides_per_scroll_mobile'] = ! empty( $settings['slides_per_scroll_mobile'] ) ? intval( $settings['slides_per_scroll_mobile'] ) : 1;
+            $render_settings['equal_height']            = 'yes' === $settings['equal_height'];
+            $render_settings['pause_on_hover']          = 'yes' === $settings['pause_on_hover'];
+            $render_settings['pause_on_interaction']    = 'yes' === $settings['pause_on_interaction'];
+            $render_settings['infinite_scroll']         = 'yes' === $settings['infinite_scroll'];
+            $render_settings['transition_duration']     = intval( $settings['transition_duration'] );
+            $render_settings['direction']               = $settings['slider_direction'];
+            $render_settings['offset_sides']            = $settings['offset_sides'];
+            $render_settings['offset_width']            = $this->get_slider_size( $settings, 'offset_width', 0 );
+            $render_settings['offset_width_tablet']     = $this->get_slider_size( $settings, 'offset_width_tablet', 0 );
+            $render_settings['offset_width_mobile']     = $this->get_slider_size( $settings, 'offset_width_mobile', 0 );
+            $render_settings['show_navigation']         = ! isset( $settings['slider_navigation'] ) || 'yes' === $settings['slider_navigation'];
+            $render_settings['show_pagination']         = ! isset( $settings['slider_pagination'] ) || 'yes' === $settings['slider_pagination'];
+            $render_settings['arrow_icon_prev']         = $settings['arrow_icon_prev'];
+            $render_settings['arrow_icon_next']         = $settings['arrow_icon_next'];
+            $slide_gap = $this->get_slider_size( $settings, 'slide_gap', 20 );
+            if ( $slide_gap ) {
+                $render_settings['slide_gap'] = $slide_gap;
+            }
         }
 
         // Card gap.

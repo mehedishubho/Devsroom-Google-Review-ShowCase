@@ -4,7 +4,7 @@ Tags: google reviews, google my business, testimonials, elementor, shortcode, oa
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.0.2
+Stable tag: 0.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin Name: Devsroom Google Review ShowCase
@@ -12,7 +12,7 @@ Plugin Title: Devsroom Google Review ShowCase
 Plugin URI: https://wordpress.org/plugins/devsroom-google-review-showcase/
 Author: WPMHS <mhs@wpmhs.com>
 Author URI: https://www.wpmhs.com/
-Version: 0.0.2
+Version: 0.0.3
 
 Devsroom Google Review ShowCase embed Google reviews or Google My Business reviews on your WordPress site via shortcode and Elementor widget. Supports two connection modes: API Key + Place ID or Google OAuth 2.0.
 
@@ -25,6 +25,7 @@ Devsroom Google Review ShowCase embed Google reviews or Google My Business revie
 * Google Business Profile OAuth — fetch ALL reviews from your account
 * Automatic background sync via WP Cron (every 6 hours, daily, or weekly)
 * Four layout types: Slider, Grid, Masonry, List
+* Advanced slider settings: responsive slides on display/scroll, autoplay, pause on hover/interaction, infinite scroll, transition duration, direction, offset sides
 * Dynamic content ordering — reorder photo, name, rating, text, date
 * Elementor widget with full Content and Style controls
 * Shortcode support with flexible attributes
@@ -52,7 +53,7 @@ Devsroom Google Review ShowCase embed Google reviews or Google My Business revie
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate through the Plugins menu
-3. Go to Settings → Devsroom Google Reviews
+3. Go to Google Reviews (top-level menu in admin sidebar)
 4. Choose a connection method:
    * **API Key mode** — Enter your Google API Key and Place ID
    * **OAuth mode** — Enter Client ID and Client Secret, then click Connect Google Account
@@ -108,6 +109,21 @@ No. You select one mode via the radio toggle in settings. Only the active mode i
 Disconnecting revokes the OAuth token and clears stored credentials, but existing synced reviews are kept in the database and continue to display on your site.
 
 == Changelog ==
+
+= 0.0.3 =
+* Added Slider Settings section in Elementor widget with advanced controls
+* Added responsive Slides on Display control for slider
+* Added responsive Slides on Scroll control for slider
+* Added Equal Height toggle for slider cards
+* Added Autoplay with Scroll Speed, Pause on Hover, and Pause on Interaction
+* Added Infinite Scroll toggle
+* Added Transition Duration control
+* Added Direction control (LTR/RTL) for slider
+* Added Offset Sides (none/both/left/right) with responsive Offset Width for slider
+* Added custom icon picker for Previous/Next arrow icons
+* Added separate Dot Color controls for normal and active states
+* Added responsive Columns control for List layout
+* Moved plugin menu from Settings submenu to top-level admin menu
 
 = 0.0.2 =
 * Added OAuth 2.0 connection mode (Connect Google Account)

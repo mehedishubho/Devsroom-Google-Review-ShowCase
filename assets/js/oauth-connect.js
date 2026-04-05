@@ -1,7 +1,7 @@
 /**
  * Devsroom Google Reviews — OAuth Connect Admin JS.
  *
- * Handles: mode toggle, Connect popup, Sync Now, Disconnect.
+ * Handles: mode toggle, Connect popup, Sync Now, Disconnect, Fetch Locations.
  */
 (function () {
 	'use strict';
@@ -28,12 +28,10 @@
 		var apiSection = document.getElementById('devsroom-greviews-mode-api-key');
 		var oauthSection = document.getElementById('devsroom-greviews-mode-oauth');
 		var actionsApi = document.getElementById('devsroom-greviews-actions-api-key');
-		var actionsOauth = document.getElementById('devsroom-greviews-actions-oauth');
 
 		if (apiSection) apiSection.style.display = (mode === 'api_key') ? '' : 'none';
 		if (oauthSection) oauthSection.style.display = (mode === 'oauth') ? '' : 'none';
 		if (actionsApi) actionsApi.style.display = (mode === 'api_key') ? '' : 'none';
-		if (actionsOauth) actionsOauth.style.display = (mode === 'oauth') ? '' : 'none';
 	}
 
 	// Connect Google Account — opens popup.
@@ -43,6 +41,16 @@
 
 		btn.addEventListener('click', function (e) {
 			e.preventDefault();
+
+			// Check if Client ID is configured (in advanced settings).
+			var clientIdField = document.getElementById('devsroom_greviews_oauth_client_id');
+			if (clientIdField && !clientIdField.value.trim()) {
+				// Open the advanced settings section.
+				var details = btn.closest('#devsroom-greviews-mode-oauth').querySelector('details');
+				if (details) details.open = true;
+				alert('Please enter your OAuth Client ID in Advanced Settings first.');
+				return;
+			}
 
 			var nonce = btn.getAttribute('data-nonce');
 			var url = ajaxurl + '?action=devsroom_greviews_oauth_start&nonce=' + encodeURIComponent(nonce);
@@ -127,7 +135,7 @@
 		});
 	}
 
-	// Fetch Locations button.
+	// Fetch Locations button — populates the <select> dropdown.
 	function initFetchLocationsButton() {
 		var btn = document.getElementById('devsroom-greviews-fetch-locations');
 		if (!btn) return;
@@ -144,7 +152,7 @@
 				nonce: devsroom_greviews_admin.locations_nonce
 			}, function (response) {
 				btn.disabled = false;
-				btn.textContent = 'Refresh Locations';
+				btn.textContent = 'Refresh';
 				if (response.success && response.data.locations) {
 					var select = document.getElementById('devsroom_greviews_oauth_location_name');
 					if (select) {
@@ -162,7 +170,7 @@
 				}
 			}).fail(function () {
 				btn.disabled = false;
-				btn.textContent = 'Refresh Locations';
+				btn.textContent = 'Refresh';
 				resultEl.innerHTML = '<span style="color:red;">Request failed.</span>';
 			});
 		});
