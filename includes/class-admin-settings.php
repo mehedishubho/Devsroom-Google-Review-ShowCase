@@ -15,6 +15,7 @@ class Devsroom_GReviews_Admin_Settings {
         // API Key mode AJAX handlers.
         add_action( 'wp_ajax_devsroom_greviews_test_fetch', array( $this, 'ajax_test_fetch' ) );
         add_action( 'wp_ajax_devsroom_greviews_clear_cache', array( $this, 'ajax_clear_cache' ) );
+        add_action( 'wp_ajax_devsroom_greviews_search_places', array( $this, 'ajax_search_places' ) );
 
         // OAuth mode AJAX handlers.
         add_action( 'wp_ajax_devsroom_greviews_oauth_start', array( $this, 'ajax_oauth_start' ) );
@@ -107,9 +108,10 @@ class Devsroom_GReviews_Admin_Settings {
         );
 
         wp_localize_script( 'devsroom-greviews-oauth-connect', 'devsroom_greviews_admin', array(
-            'sync_nonce'       => wp_create_nonce( 'devsroom_greviews_sync_now' ),
-            'disconnect_nonce' => wp_create_nonce( 'devsroom_greviews_oauth_disconnect' ),
-            'locations_nonce'  => wp_create_nonce( 'devsroom_greviews_fetch_locations' ),
+            'sync_nonce'            => wp_create_nonce( 'devsroom_greviews_sync_now' ),
+            'disconnect_nonce'      => wp_create_nonce( 'devsroom_greviews_oauth_disconnect' ),
+            'locations_nonce'       => wp_create_nonce( 'devsroom_greviews_fetch_locations' ),
+            'search_places_nonce'   => wp_create_nonce( 'devsroom_greviews_search_places' ),
         ) );
 
         // Inline JS for API Key mode buttons (Test Fetch, Clear Cache).
@@ -203,6 +205,84 @@ class Devsroom_GReviews_Admin_Settings {
 
         wp_send_json_success( array(
             'message' => __( 'Cache cleared successfully.', 'devsroom-google-review-showcase' ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — Google Places Autocomplete suggestions.
+     */
+    public function ajax_search_places() {
+        check_ajax_referer( 'devsroom_greviews_search_places', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $input = isset( $_POST['query'] ) ? sanitize_text_field( $_POST['query'] ) : '';
+
+        if ( strlen( $input ) < 2 ) {
+            wp_send_json_error( array( 'message' => __( 'Please enter at least 2 characters.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $api_key = get_option( 'devsroom_greviews_api_key', '' );
+
+        if ( empty( $api_key ) ) {
+            wp_send_json_error( array( 'message' => __( 'Please save your API Key first, then search.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $url = add_query_arg( array(
+            'input' => $input,
+            'key'   => $api_key,
+            'types' => 'establishment',
+        ), 'https://maps.googleapis.com/maps/api/place/autocomplete/json' );
+
+        $response = wp_remote_get( $url, array( 'timeout' => 15 ) );
+
+        if ( is_wp_error( $response ) ) {
+            wp_send_json_error( array( 'message' => $response->get_error_message() ) );
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+
+        if ( 200 !== $code ) {
+            wp_send_json_error( array( 'message' => sprintf(
+                /* translators: %d: HTTP status code */
+                __( 'API returned HTTP status %d.', 'devsroom-google-review-showcase' ),
+                $code
+            ) ) );
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data ) ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid JSON response from API.', 'devsroom-google-review-showcase' ) ) );
+        }
+
+        $status = isset( $data['status'] ) ? $data['status'] : '';
+
+        if ( 'OK' !== $status && 'ZERO_RESULTS' !== $status ) {
+            $error_msg = isset( $data['error_message'] ) ? $data['error_message'] : $status;
+            wp_send_json_error( array( 'message' => $error_msg ) );
+        }
+
+        $predictions = array();
+        $raw_predictions = isset( $data['predictions'] ) ? $data['predictions'] : array();
+
+        foreach ( $raw_predictions as $raw ) {
+            $main_text     = isset( $raw['structured_formatting']['main_text'] ) ? sanitize_text_field( $raw['structured_formatting']['main_text'] ) : '';
+            $secondary_text = isset( $raw['structured_formatting']['secondary_text'] ) ? sanitize_text_field( $raw['structured_formatting']['secondary_text'] ) : '';
+
+            $predictions[] = array(
+                'place_id'       => isset( $raw['place_id'] ) ? sanitize_text_field( $raw['place_id'] ) : '',
+                'description'    => isset( $raw['description'] ) ? sanitize_text_field( $raw['description'] ) : '',
+                'main_text'      => $main_text,
+                'secondary_text' => $secondary_text,
+            );
+        }
+
+        wp_send_json_success( array(
+            'predictions' => $predictions,
         ) );
     }
 
@@ -730,6 +810,111 @@ class Devsroom_GReviews_Admin_Settings {
         $location_name   = get_option( 'devsroom_greviews_oauth_location_name', '' );
         $sync_interval   = get_option( 'devsroom_greviews_sync_interval', 'daily' );
         ?>
+        <style>
+            .devsroom-greviews-place-search-wrap {
+                position: relative;
+                max-width: 500px;
+            }
+            .devsroom-greviews-place-search-wrap input {
+                width: 100%;
+                padding: 10px 36px 10px 14px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                line-height: 1.4;
+                box-sizing: border-box;
+                outline: none;
+                background: #fff;
+                transition: border-color 0.15s;
+            }
+            .devsroom-greviews-place-search-wrap input:focus {
+                border-color: #4285f4;
+                box-shadow: 0 0 0 2px rgba(66,133,244,0.15);
+            }
+            .devsroom-greviews-place-search-wrap input::placeholder {
+                color: #9ca3af;
+            }
+            .devsroom-greviews-place-search-icon {
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #9ca3af;
+                pointer-events: none;
+            }
+            .devsroom-greviews-place-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: #fff;
+                border: 1px solid #d1d5db;
+                border-top: none;
+                border-radius: 0 0 6px 6px;
+                max-height: 280px;
+                overflow-y: auto;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                display: none;
+            }
+            .devsroom-greviews-place-dropdown.is-open {
+                display: block;
+            }
+            .devsroom-greviews-place-result {
+                display: flex;
+                align-items: center;
+                padding: 10px 14px;
+                gap: 10px;
+                cursor: pointer;
+                border-bottom: 1px solid #f3f4f6;
+                transition: background 0.1s;
+            }
+            .devsroom-greviews-place-result:last-child {
+                border-bottom: none;
+            }
+            .devsroom-greviews-place-result:hover {
+                background: #f0f7ff;
+            }
+            .devsroom-greviews-place-result-pin {
+                flex-shrink: 0;
+                color: #9ca3af;
+            }
+            .devsroom-greviews-place-result-info {
+                flex: 1;
+                min-width: 0;
+            }
+            .devsroom-greviews-place-result-info strong {
+                display: block;
+                font-size: 13px;
+                font-weight: 600;
+                color: #1f2937;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .devsroom-greviews-place-result-address {
+                display: block;
+                font-size: 12px;
+                color: #6b7280;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .devsroom-greviews-place-dropdown-footer {
+                padding: 6px 14px;
+                text-align: right;
+                font-size: 11px;
+                color: #9ca3af;
+                border-top: 1px solid #f3f4f6;
+                background: #fafafa;
+                border-radius: 0 0 6px 6px;
+            }
+            .devsroom-greviews-place-dropdown-footer img {
+                vertical-align: middle;
+                margin-left: 2px;
+                height: 12px;
+            }
+        </style>
         <br />
 
         <form method="post" action="options.php">
@@ -776,6 +961,27 @@ class Devsroom_GReviews_Admin_Settings {
 
                     <tr>
                         <th scope="row">
+                            <label for="devsroom-greviews-place-search"><?php esc_html_e( 'Google Business Profile', 'devsroom-google-review-showcase' ); ?></label>
+                        </th>
+                        <td>
+                            <div class="devsroom-greviews-place-search-wrap">
+                                <input type="text"
+                                       id="devsroom-greviews-place-search"
+                                       placeholder="<?php esc_attr_e( 'Enter business name or location...', 'devsroom-google-review-showcase' ); ?>"
+                                       autocomplete="off" />
+                                <span class="devsroom-greviews-place-search-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                </span>
+                                <div id="devsroom-greviews-place-search-results" class="devsroom-greviews-place-dropdown"></div>
+                            </div>
+                            <p class="description">
+                                <?php esc_html_e( 'Search for your business to auto-fill Place ID. Requires a saved API Key.', 'devsroom-google-review-showcase' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th scope="row">
                             <label for="devsroom_greviews_place_id"><?php esc_html_e( 'Google Place ID', 'devsroom-google-review-showcase' ); ?></label>
                         </th>
                         <td>
@@ -785,7 +991,7 @@ class Devsroom_GReviews_Admin_Settings {
                                    value="<?php echo esc_attr( get_option( 'devsroom_greviews_place_id', '' ) ); ?>"
                                    class="regular-text" />
                             <p class="description">
-                                <?php esc_html_e( 'Your Google My Business Place ID.', 'devsroom-google-review-showcase' ); ?>
+                                <?php esc_html_e( 'Auto-filled by search above, or enter manually.', 'devsroom-google-review-showcase' ); ?>
                             </p>
                         </td>
                     </tr>
@@ -1083,10 +1289,9 @@ class Devsroom_GReviews_Admin_Settings {
 
             <h3>Step 2: Find Your Place ID</h3>
             <ol>
-                <li>Go to the <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank">Google Place ID Finder</a></li>
-                <li>Enter your business name in the search box</li>
-                <li>Select your business from the results</li>
-                <li>Copy the <strong>Place ID</strong> (format: <code>ChIJ...</code>)</li>
+                <li>After saving your API Key, use the <strong>Search Business</strong> field on the Settings tab to search for your business by name</li>
+                <li>Click <strong>Select</strong> on the correct result to auto-fill the Place ID</li>
+                <li>Alternatively, use the <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank">Google Place ID Finder</a> to manually find and copy your Place ID (format: <code>ChIJ...</code>)</li>
             </ol>
 
             <hr />

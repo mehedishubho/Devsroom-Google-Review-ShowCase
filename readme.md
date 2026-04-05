@@ -5,6 +5,7 @@
 ## Features
 
 - **Two connection modes** — API Key + Place ID or Google OAuth 2.0
+- **Google Places Autocomplete** — search and select your business instantly in settings
 - Google Places API integration with smart caching
 - Google Business Profile OAuth — fetch ALL reviews from your account
 - Automatic background sync via WP Cron (every 6 hours, daily, or weekly)
@@ -52,10 +53,9 @@ The original method. Enter your Google Cloud API Key and Place ID in settings. U
 
 **Step 2: Find Your Place ID**
 
-1. Go to the [Google Place ID Finder](https://developers.google.com/maps/documentation/places/web-service/place-id)
-2. Enter your business name in the search box
-3. Select your business from the results
-4. Copy the **Place ID** (format: `ChIJ...`)
+1. After saving your API Key, use the **Search Business** field on the Settings page to search for your business by name
+2. Click on the correct result to auto-fill the Place ID
+3. Alternatively, use the [Google Place ID Finder](https://developers.google.com/maps/documentation/places/web-service/place-id) to manually find and copy your Place ID (format: `ChIJ...`)
 
 ### Mode 2: Connect Google Account (OAuth 2.0)
 
@@ -102,7 +102,8 @@ Choose between the two modes via radio toggle:
 | Field | Description |
 |-------|-------------|
 | **Google API Key** | Your Google Cloud API key with Places API enabled |
-| **Google Place ID** | Your business Place ID from Google |
+| **Google Business Profile** | Search for your business using Google Places Autocomplete to auto-fill Place ID |
+| **Google Place ID** | Auto-filled by search, or enter manually |
 | **Cache Duration** | How long to cache reviews (in hours). Default: 24 hours |
 
 ### OAuth Mode Settings
@@ -446,6 +447,15 @@ Google offers a monthly free tier for the Places API. Check [Google's pricing pa
 ---
 
 ## Changelog
+
+### 0.0.40
+
+- Added Google Places Autocomplete search to find and select business in settings
+- Dropdown suggestions with business name, address, and pin icon as you type
+- Auto-populates Place ID field when a business is selected
+- "powered by Google" footer in autocomplete dropdown
+- Server-side API proxy keeps API key secure (never exposed to browser)
+- Updated User Guide with inline search instructions
 
 ### 0.0.3
 

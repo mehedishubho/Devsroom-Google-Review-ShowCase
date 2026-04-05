@@ -4,7 +4,7 @@
  * Plugin Name: Devsroom Google Review ShowCase
  * Plugin URI:  https://devsroom.com
  * Description: Fetch and display verified Google My Business reviews via shortcode and Elementor widget with multiple layouts.
- * Version:     0.0.3
+ * Version:     0.0.40
  * Author:      Devsroom
  * Author URI:  https://devsroom.com
  * License:     GPL-2.0-or-later
@@ -19,7 +19,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('DEVSROOM_GREVIEWS_VERSION', '1.0.0');
+define('DEVSROOM_GREVIEWS_VERSION', '0.0.40');
 define('DEVSROOM_GREVIEWS_DIR', plugin_dir_path(__FILE__));
 define('DEVSROOM_GREVIEWS_URL', plugin_dir_url(__FILE__));
 define('DEVSROOM_GREVIEWS_BASENAME', plugin_basename(__FILE__));

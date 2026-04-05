@@ -4,7 +4,7 @@ Tags: google reviews, google my business, testimonials, elementor, shortcode, oa
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.0.3
+Stable tag: 0.0.40
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin Name: Devsroom Google Review ShowCase
@@ -12,7 +12,7 @@ Plugin Title: Devsroom Google Review ShowCase
 Plugin URI: https://wordpress.org/plugins/devsroom-google-review-showcase/
 Author: WPMHS <mhs@wpmhs.com>
 Author URI: https://www.wpmhs.com/
-Version: 0.0.3
+Version: 0.0.40
 
 Devsroom Google Review ShowCase embed Google reviews or Google My Business reviews on your WordPress site via shortcode and Elementor widget. Supports two connection modes: API Key + Place ID or Google OAuth 2.0.
 
@@ -21,6 +21,7 @@ Devsroom Google Review ShowCase embed Google reviews or Google My Business revie
 **Features:**
 
 * Two connection modes: API Key + Place ID or Google OAuth 2.0
+* Google Places Autocomplete search to find and select your business instantly
 * Google Places API integration with smart caching
 * Google Business Profile OAuth — fetch ALL reviews from your account
 * Automatic background sync via WP Cron (every 6 hours, daily, or weekly)
@@ -91,7 +92,7 @@ Connect directly to your Google Business Profile using OAuth 2.0. Fetches ALL re
 Visit the Google Cloud Console, enable the Places API, and create an API key.
 
 = Where do I find my Place ID? =
-Use the Google Place ID finder tool to locate your business Place ID.
+Use the built-in Google Places Autocomplete search on the Settings page — just type your business name and select from the dropdown. Alternatively, use the Google Place ID Finder tool manually.
 
 = What is the difference between API Key and OAuth modes? =
 API Key mode uses the Google Places API and is limited to reviews available through that API. OAuth mode connects directly to your Google Business Profile and fetches ALL reviews with no limit. OAuth mode also supports automatic background syncing.
@@ -109,6 +110,14 @@ No. You select one mode via the radio toggle in settings. Only the active mode i
 Disconnecting revokes the OAuth token and clears stored credentials, but existing synced reviews are kept in the database and continue to display on your site.
 
 == Changelog ==
+
+= 0.0.40 =
+* Added Google Places Autocomplete search to find and select business in settings
+* Dropdown suggestions with business name, address, and pin icon as you type
+* Auto-populates Place ID field when a business is selected
+* "powered by Google" footer in autocomplete dropdown
+* Server-side API proxy keeps API key secure (never exposed to browser)
+* Updated User Guide with inline search instructions
 
 = 0.0.3 =
 * Added Slider Settings section in Elementor widget with advanced controls

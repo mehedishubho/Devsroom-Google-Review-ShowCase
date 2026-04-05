@@ -176,6 +176,129 @@
 		});
 	}
 
+	// Place Search — Google Places Autocomplete dropdown.
+	function initPlaceSearch() {
+		var searchInput = document.getElementById('devsroom-greviews-place-search');
+		var resultsEl = document.getElementById('devsroom-greviews-place-search-results');
+		if (!searchInput || !resultsEl) return;
+
+		var pendingReq = null;
+		var debounceTimer = null;
+		var pinSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+
+		function openDropdown() {
+			resultsEl.classList.add('is-open');
+		}
+
+		function closeDropdown() {
+			resultsEl.classList.remove('is-open');
+		}
+
+		function doSearch() {
+			var query = searchInput.value.trim();
+			if (query.length < 2) {
+				closeDropdown();
+				resultsEl.innerHTML = '';
+				return;
+			}
+
+			if (pendingReq) {
+				pendingReq.abort();
+			}
+
+			resultsEl.innerHTML = '<div style="padding:12px 14px;color:#6b7280;font-size:13px;">Searching...</div>';
+			openDropdown();
+
+			pendingReq = jQuery.post(ajaxurl, {
+				action: 'devsroom_greviews_search_places',
+				nonce: devsroom_greviews_admin.search_places_nonce,
+				query: query
+			}, function (response) {
+				pendingReq = null;
+
+				if (response.success && response.data.predictions && response.data.predictions.length) {
+					var html = '';
+					response.data.predictions.forEach(function (pred) {
+						html += '<div class="devsroom-greviews-place-result" data-place-id="' + escHtml(pred.place_id) + '" data-name="' + escHtml(pred.main_text) + '">';
+						html += '<span class="devsroom-greviews-place-result-pin">' + pinSvg + '</span>';
+						html += '<div class="devsroom-greviews-place-result-info">';
+						html += '<strong>' + escHtml(pred.main_text) + '</strong>';
+						html += '<span class="devsroom-greviews-place-result-address">' + escHtml(pred.secondary_text) + '</span>';
+						html += '</div>';
+						html += '</div>';
+					});
+					html += '<div class="devsroom-greviews-place-dropdown-footer">powered by Google</div>';
+					resultsEl.innerHTML = html;
+					openDropdown();
+				} else if (response.success && (!response.data.predictions || !response.data.predictions.length)) {
+					resultsEl.innerHTML = '<div style="padding:12px 14px;color:#6b7280;font-size:13px;">No results found. Try a different search.</div>';
+					openDropdown();
+				} else {
+					resultsEl.innerHTML = '<div style="padding:12px 14px;color:#dc2626;font-size:13px;">' + escHtml(response.data.message || 'Search failed.') + '</div>';
+					openDropdown();
+				}
+			}).fail(function (jqXHR, status) {
+				pendingReq = null;
+				if (status !== 'abort') {
+					resultsEl.innerHTML = '<div style="padding:12px 14px;color:#dc2626;font-size:13px;">Request failed.</div>';
+					openDropdown();
+				}
+			});
+		}
+
+		// Debounced input — suggestions as you type.
+		searchInput.addEventListener('input', function () {
+			clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(doSearch, 400);
+		});
+
+		searchInput.addEventListener('keydown', function (e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				clearTimeout(debounceTimer);
+				doSearch();
+			}
+			if (e.key === 'Escape') {
+				closeDropdown();
+			}
+		});
+
+		searchInput.addEventListener('focus', function () {
+			if (resultsEl.innerHTML.trim()) {
+				openDropdown();
+			}
+		});
+
+		// Click on suggestion — event delegation.
+		resultsEl.addEventListener('click', function (e) {
+			var row = e.target.closest('.devsroom-greviews-place-result');
+			if (!row) return;
+
+			var placeId = row.getAttribute('data-place-id');
+			var placeName = row.getAttribute('data-name');
+			var placeIdField = document.getElementById('devsroom_greviews_place_id');
+			if (placeIdField && placeId) {
+				placeIdField.value = placeId;
+				searchInput.value = placeName;
+				closeDropdown();
+				resultsEl.innerHTML = '';
+			}
+		});
+
+		// Close dropdown when clicking outside.
+		document.addEventListener('click', function (e) {
+			if (!e.target.closest('.devsroom-greviews-place-search-wrap')) {
+				closeDropdown();
+			}
+		});
+	}
+
+	function escHtml(str) {
+		var div = document.createElement('div');
+		div.appendChild(document.createTextNode(str));
+		return div.innerHTML;
+	}
+
 	// Initialize on DOM ready.
 	function init() {
 		initModeToggle();
@@ -183,6 +306,7 @@
 		initSyncButton();
 		initDisconnectButton();
 		initFetchLocationsButton();
+		initPlaceSearch();
 	}
 
 	if (document.readyState === 'loading') {
